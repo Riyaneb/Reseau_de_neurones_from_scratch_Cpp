@@ -5,6 +5,7 @@
 #include "nn/Activations.hpp"
 #include "nn/Losses.hpp"
 #include "nn/Optimizers.hpp"
+#include "nn/SoftmaxLayer.hpp"
 #include <sstream>
 
 #include "io/Serializer.hpp"
@@ -26,11 +27,19 @@ int main() {
     input_xor.get_value(3, 0) = 1.0;
     input_xor.get_value(3, 1) = 1.0;
 
-    Matrix target_xor(4, 1);
-    target_xor.get_value(0, 0) = 0.0;
-    target_xor.get_value(1, 0) = 1.0;
-    target_xor.get_value(2, 0) = 1.0;
-    target_xor.get_value(3, 0) = 0.0;
+    Matrix target_xor(4, 2);
+
+    target_xor.get_value(0, 0) = 1.0;
+    target_xor.get_value(0, 1) = 0.0;
+
+    target_xor.get_value(1, 0) = 0.0;
+    target_xor.get_value(1, 1) = 1.0;
+
+    target_xor.get_value(2, 0) = 0.0;
+    target_xor.get_value(2, 1) = 1.0;
+
+    target_xor.get_value(3, 0) = 1.0;
+    target_xor.get_value(3, 1) = 0.0;
 
     Random gen(33);
     QuadraLoss fn_loss;
@@ -42,9 +51,9 @@ int main() {
     net.add(std::move(ptrDense1));
     net.add(std::make_unique<Tanh>(4));
 
-    auto ptrDense2 = std::make_unique<DenseLayer>(4, 1, gen);
+    auto ptrDense2 = std::make_unique<DenseLayer>(4, 2, gen);
     net.add(std::move(ptrDense2));
-    net.add(std::make_unique<Sigmoide>(1));
+    net.add(std::make_unique<SoftmaxLayer>(2));
 
     const Index EPOCH = 5000;
 

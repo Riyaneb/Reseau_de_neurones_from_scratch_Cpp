@@ -22,6 +22,8 @@ set(CORE_SOURCE
         src/rl/ReplayBuffer.cpp
         src/utils/Timer.cpp
         src/utils/Logger.cpp
+        include/nn/SoftmaxLayer.hpp
+        src/nn/SoftmaxLayer.cpp
 )
 
 set(TEST

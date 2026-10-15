@@ -1,6 +1,7 @@
 #ifndef RESEAUDENEURONEFROMSCRATCH_LOGGER_HPP
 #define RESEAUDENEURONEFROMSCRATCH_LOGGER_HPP
 #include "rl/DQNAgent.hpp"
+#include "env/SnakeEnv.hpp"
 
 
 void print_configuration(ConfigurationAgent const &config);
