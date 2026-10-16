@@ -142,6 +142,17 @@ Sa dérivée vaut 1 si $x > 0$ et 0 sinon.
 \tanh'(x) = 1 - \tanh^2(x)
 ```
 
+**Softmax** : Semblable à la fonction sigmoïde où chaque valeur est comprise entre 0 et 1 et la somme de toutes les valeurs est égale à 1. Chaque sortie dépend des autres.
+
+```math
+s_i = \frac{e^{z_i}}{\sum_{j=1}^{k} e^{z_j}}
+```
+
+```math
+\frac{\partial s_i}{\partial z_j} = s_i \, (\delta_{ij} - s_j)
+```
+où $\delta_{ij}$ vaut 1 si $i = j$, et 0 sinon.
+
 **Identité** : Ne change rien à la valeur. Sa dérivée vaut toujours 1. Elle sert quand la valeur attendue n'est pas bornée, ce qui est le cas de l'agent DQN réalisé dans ce projet.
 
 ### Fonction de perte
@@ -158,6 +169,29 @@ Le facteur $\frac{1}{2}$ est là pour simplifier la dérivée. Le carré fait ap
 
 ```math
 \frac{\partial L}{\partial \hat{Y}} = \frac{\hat{Y} - Y}{N}
+```
+
+Voici les autres fonctions de perte disponible dans le projet :
+
+**BCE Loss (Binary Cross-Entropy)** : Elle s'utilise lorsque le modèle doit choisir entre 2 choix. Elle est souvent utilisée avec la fonction d'activation Sigmoïde.
+
+```math
+L = -\frac{1}{N} \sum_{n=1}^{N} \sum_{k} \left[ y_{nk} \ln(p_{nk}) + (1 - y_{nk}) \ln(1 - p_{nk}) \right]
+```
+
+```math
+\frac{\partial L}{\partial p_{nk}} = \frac{1}{N} \cdot \frac{p_{nk} - y_{nk}}{p_{nk} \, (1 - p_{nk})}
+```
+
+**CCE Loss (Categorical Cross-Entropy)** : Elle s'utilise quand il y a 3 classes ou plus (Par exemple pour prédire si une image est un chat, un chien ou un oiseau).
+
+
+```math
+L = -\frac{1}{N} \sum_{n=1}^{N} \sum_{k} y_{nk} \ln(p_{nk})
+```
+
+```math
+\frac{\partial L}{\partial p_{nk}} = -\frac{1}{N} \cdot \frac{y_{nk}}{p_{nk}}
 ```
 
 ### Corriger les poids : la descente de gradient

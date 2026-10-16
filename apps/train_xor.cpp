@@ -42,7 +42,7 @@ int main() {
     target_xor.get_value(3, 1) = 0.0;
 
     Random gen(33);
-    QuadraLoss fn_loss;
+    BCE fn_loss;
     // SGD optimizer(taux);
 
     Network net;
@@ -53,7 +53,7 @@ int main() {
 
     auto ptrDense2 = std::make_unique<DenseLayer>(4, 2, gen);
     net.add(std::move(ptrDense2));
-    net.add(std::make_unique<SoftmaxLayer>(2));
+    net.add(std::make_unique<Sigmoide>(2));
 
     const Index EPOCH = 5000;
 
