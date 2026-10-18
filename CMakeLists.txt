@@ -1,6 +1,16 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(ReseauDeNeuroneFromScratch LANGUAGES CXX)
+project(ReseauDeNeuroneFromScratch LANGUAGES CXX CUDA)
+
+include(CheckLanguage)
+check_language(CUDA)
+if(CMAKE_CUDA_COMPILER)
+    enable_language(CUDA)
+    set(CMAKE_CUDA_STANDARD 17)
+    set(CMAKE_CUDA_ARCHITECTURES 89)
+    find_package(CUDAToolkit REQUIRED)
+endif()
+
 
 set(CORE_SOURCE
         src/env/CorridorEnv.cpp
@@ -24,6 +34,9 @@ set(CORE_SOURCE
         src/utils/Logger.cpp
         include/nn/SoftmaxLayer.hpp
         src/nn/SoftmaxLayer.cpp
+        include/gpu/GpuCudaCheck.hpp
+        include/gpu/GpuCudaCheck.hpp
+        include/gpu/Gpu_calcul_matrix.hpp
 )
 
 set(TEST
@@ -40,6 +53,14 @@ set(TEST
 add_library(libNeurone ${CORE_SOURCE}
         include/utils/Logger.hpp)
 target_include_directories(libNeurone PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+if(CMAKE_CUDA_COMPILER)
+    target_sources(libNeurone PRIVATE src/gpu/Gpu_calcul_matrix.cu)
+    target_compile_definitions(libNeurone PUBLIC USE_CUDA)
+    target_link_libraries(libNeurone PUBLIC CUDA::cudart)
+    target_link_libraries(libNeurone PUBLIC CUDA::cublas)
+endif()
+
 
 add_executable(play_snake apps/play_snake.cpp)
 target_link_libraries(play_snake PRIVATE libNeurone)
@@ -79,7 +100,7 @@ set_target_properties(test_module PROPERTIES CXX_EXTENSIONS OFF)
 
 
 if(MSVC)
-    target_compile_options(libNeurone PUBLIC /W4 /WX)
+    target_compile_options(libNeurone PRIVATE $<$<COMPILE_LANGUAGE:CXX>:/W4 /WX>)
 else()
-    target_compile_options(libNeurone PUBLIC -Wall -Wextra -Wpedantic -Werror)
+    target_compile_options(libNeurone PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-Wall -Wextra -Wpedantic -Werror>)
 endif()

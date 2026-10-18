@@ -2,6 +2,8 @@
 #include <cassert>
 #include <iostream>
 
+
+
 Index Matrix::check_size(Index l, Index c) {
     assert(l > 0 && c >0 && "Le nombre de ligne ou de colonne de la matrice est négatif ou nulle");
     return l*c;
@@ -27,6 +29,14 @@ const Scalar &Matrix::get_value(Index l, Index c) const {
 Scalar &Matrix::get_value(Index l, Index c) {
     assert(l>=0 && l < row && c>=0 && c < column && "Erreur : Index incorrect");
     return mat[size_mat(l, c)];
+}
+
+Scalar* Matrix::get_ptr_matrix() {
+    return mat.data();
+}
+
+Scalar const *Matrix::get_ptr_matrix() const {
+    return mat.data();
 }
 
 Matrix& Matrix::operator+=(Matrix const &m) {

@@ -6,7 +6,7 @@
 
 class Matrix;
 
-using Scalar = double;
+using Scalar = float;
 using Index = int;
 using PairParameters = std::vector<std::pair<Matrix*, Matrix*>>;
 

@@ -11,18 +11,26 @@ public:
     Index get_column() const;
     const Scalar &get_value(Index l, Index c) const;
     Scalar &get_value(Index l, Index c);
+    Scalar *get_ptr_matrix();
+    Scalar const *get_ptr_matrix() const;
+
     Matrix& operator+=(Matrix const &m);
     Matrix& operator-=(Matrix const &m);
     Matrix& hadamard(Matrix const &m);
     Matrix& operator*=(Scalar const &a);
+
     bool isSquare() const;
+
     Matrix transpose() const;
     Matrix& broadcast(Matrix const &m);
     Matrix sum_row() const;
     static Matrix matIdentity(Index i);
+
     void render();
+
     Index max_index_value_row(Index r) const;
     Scalar max_value_row(Index r) const;
+
 
 private:
     static Index check_size(Index l, Index c);
