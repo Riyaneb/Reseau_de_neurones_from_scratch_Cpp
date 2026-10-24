@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(ReseauDeNeuroneFromScratch LANGUAGES CXX CUDA)
+project(ReseauDeNeuroneFromScratch LANGUAGES CXX)
 
 include(CheckLanguage)
 check_language(CUDA)
@@ -37,6 +37,12 @@ set(CORE_SOURCE
         include/gpu/GpuCudaCheck.hpp
         include/gpu/GpuCudaCheck.hpp
         include/gpu/Gpu_calcul_matrix.hpp
+        include/nn/Shape.hpp
+        src/nn/Shape.cpp
+        include/cnn/FlattenLayer.hpp
+        src/cnn/FlattenLayer.cpp
+        src/cnn/ConvLayer.cpp
+        include/cnn/ConvLayer.hpp
 )
 
 set(TEST
@@ -52,6 +58,7 @@ set(TEST
 
 add_library(libNeurone ${CORE_SOURCE}
         include/utils/Logger.hpp)
+target_compile_features(libNeurone PUBLIC cxx_std_17)
 target_include_directories(libNeurone PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 if(CMAKE_CUDA_COMPILER)
@@ -100,7 +107,7 @@ set_target_properties(test_module PROPERTIES CXX_EXTENSIONS OFF)
 
 
 if(MSVC)
-    target_compile_options(libNeurone PRIVATE $<$<COMPILE_LANGUAGE:CXX>:/W4 /WX>)
+    target_compile_options(libNeurone PRIVATE $<$<COMPILE_LANGUAGE:CXX>:/W4>)
 else()
     target_compile_options(libNeurone PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-Wall -Wextra -Wpedantic -Werror>)
 endif()

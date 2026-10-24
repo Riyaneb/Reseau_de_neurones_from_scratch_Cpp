@@ -25,4 +25,6 @@
         }\
     } while (0)
 
+bool gpu_available();
+
 #endif //RESEAUDENEURONEFROMSCRATCH_GPUCALCULMATRIX_HPP

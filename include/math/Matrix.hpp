@@ -9,6 +9,7 @@ public:
     Matrix(Index l,Index c,Scalar init_value=0): row(l), column(c), mat(check_size(l,c), init_value) {}
     Index get_row() const;
     Index get_column() const;
+    Index get_size() const;
     const Scalar &get_value(Index l, Index c) const;
     Scalar &get_value(Index l, Index c);
     Scalar *get_ptr_matrix();
@@ -18,6 +19,9 @@ public:
     Matrix& operator-=(Matrix const &m);
     Matrix& hadamard(Matrix const &m);
     Matrix& operator*=(Scalar const &a);
+
+    static Matrix multiplyMatrixCPU(Matrix const &m1, Matrix const &m2);
+    static Matrix multiplyMatrixGPU(Matrix const &m1, Matrix const &m2);
 
     bool isSquare() const;
 

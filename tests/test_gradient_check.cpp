@@ -156,7 +156,7 @@ void test_backward(TestRunner &runner) {
 
 bool check_gradient_relative_error(Scalar grad_analytique, Scalar grad_numerique) {
     Scalar diff = std::abs(grad_analytique - grad_numerique);
-    Scalar denom = std::max(1e-8, std::abs(grad_analytique) + std::abs(grad_numerique));
+    Scalar denom = std::max(1e-8f, std::abs(grad_analytique) + std::abs(grad_numerique));
     Scalar erreur_relative = diff / denom;
 
     return erreur_relative < 1e-7;

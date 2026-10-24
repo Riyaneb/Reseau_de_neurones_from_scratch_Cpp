@@ -32,7 +32,7 @@ Scalar BCE::calculate_loss(Matrix const &prediction, Matrix const &target) const
     for (int i = 0; i < prediction.get_row(); i++) {
         for (int j = 0; j < prediction.get_column(); j++) {
             Scalar y = target.get_value(i,j);
-            Scalar p = std::clamp(prediction.get_value(i,j),1e-12,1 - 1e-12);
+            Scalar p = std::clamp(prediction.get_value(i,j),1e-7f,1 - 1e-7f);
             loss_value += y * std::log(p) + (1-y) * std::log(1-p);
         }
     }
@@ -48,7 +48,7 @@ Matrix BCE::calculate_gradients_loss(Matrix const &prediction, Matrix const &tar
     for (Index i = 0; i < grad.get_row(); i++) {
         for (Index j = 0; j < grad.get_column(); j++) {
             Scalar y = target.get_value(i,j);
-            Scalar p = std::clamp(prediction.get_value(i,j),1e-12,1 - 1e-12);
+            Scalar p = std::clamp(prediction.get_value(i,j),1e-7f,1 - 1e-7f);
             grad.get_value(i,j) = (p-y)/(p*(1-p));
             grad.get_value(i,j) = grad.get_value(i,j) / n;
         }

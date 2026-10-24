@@ -1,8 +1,10 @@
 #include "math/Matrix.hpp"
 #include <cassert>
 #include <iostream>
-
-
+#ifdef USE_CUDA
+    #include "gpu/Gpu_calcul_matrix.hpp"
+#endif
+#define MIN_SIZE 100000
 
 Index Matrix::check_size(Index l, Index c) {
     assert(l > 0 && c >0 && "Le nombre de ligne ou de colonne de la matrice est négatif ou nulle");
@@ -20,6 +22,10 @@ Index Matrix::get_row() const {
 Index Matrix::get_column() const {
     return column;
 }
+Index Matrix::get_size() const {
+    return row*column;
+}
+
 
 const Scalar &Matrix::get_value(Index l, Index c) const {
     assert(l>=0 && l < row && c>=0 && c < column && "Erreur : Index incorrect");
@@ -140,19 +146,56 @@ Matrix Matrix::sum_row() const {
     return result;
 }
 
-Matrix operator*(Matrix const &m1, Matrix const &m2) {
-    assert(m1.get_column() == m2.get_row() && "Erreur : Dimension incorrecte pour la multiplication matricielle");
+Matrix Matrix::multiplyMatrixCPU(Matrix const &m1, Matrix const &m2) {
     Matrix result(m1.get_row(),m2.get_column(),0);
+    Scalar* res = result.get_ptr_matrix();
+    const Scalar* p1 = m1.get_ptr_matrix();
+    const Scalar* p2 = m2.get_ptr_matrix();
 
     for (Index i = 0; i < m1.get_row(); ++i) {
-        for (Index j = 0; j < m2.get_column(); ++j) {
-            for (Index k = 0; k < m1.get_column(); ++k) {
-                result.get_value(i,j) += m1.get_value(i,k) * m2.get_value(k,j);
+        Scalar* res_i = res + i * m2.get_column();
+        for (Index k = 0; k < m1.get_column(); ++k) {
+            Scalar val_m1 = p1[i * m1.get_column() + k];
+            const Scalar* m2_k = p2 + k * m2.get_column();
+            for (Index j = 0; j < m2.get_column(); ++j) {
+                res_i[j] += val_m1 * m2_k[j];
             }
         }
     }
     return result;
 }
+
+Matrix Matrix::multiplyMatrixGPU(Matrix const &m1, Matrix const &m2) {
+    assert(m1.get_column() == m2.get_row() && "Erreur : Dimension incorrecte pour la multiplication matricielle");
+    #ifdef USE_CUDA
+        Index c(m2.get_column()), r(m1.get_row());
+        if (gpu_available()) {
+            Matrix result(r,c,0);
+            gpu_matrix_multiply(m1,m2,result);
+            return result;
+        }
+        else {
+            std::cerr << "Aucun GPU utilisant CUDA trouvé" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+    #else
+        exit(EXIT_FAILURE);
+    #endif
+}
+
+Matrix operator*(Matrix const &m1, Matrix const &m2) {
+    assert(m1.get_column() == m2.get_row() && "Erreur : Dimension incorrecte pour la multiplication matricielle");
+    #ifdef USE_CUDA
+        Index c(m2.get_column()), r(m1.get_row());
+        long long size = (long long)r*c*m1.get_column();
+        if (gpu_available() && size > MIN_SIZE) {
+            return Matrix::multiplyMatrixGPU(m1,m2);
+        }
+    #endif
+    return Matrix::multiplyMatrixCPU(m1,m2);
+}
+
+
 
 
 Matrix Matrix::matIdentity(Index n) {
