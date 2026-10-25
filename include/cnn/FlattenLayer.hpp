@@ -11,6 +11,7 @@ public:
     Index nInput() const override;
     Index nOutput() const override;
     std::unique_ptr<Layer> clone() const override;
+
 private:
     Shape shape;
 };

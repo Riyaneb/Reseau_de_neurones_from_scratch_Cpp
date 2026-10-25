@@ -43,6 +43,8 @@ set(CORE_SOURCE
         src/cnn/FlattenLayer.cpp
         src/cnn/ConvLayer.cpp
         include/cnn/ConvLayer.hpp
+        include/cnn/MaxPoolingLayer.hpp
+        src/cnn/MaxPoolingLayer.cpp
 )
 
 set(TEST

@@ -5,7 +5,7 @@ ConvLayer::ConvLayer(Shape const &s, Index nKernel, Index dimKer, Random &gen, I
     assert((initChoice == 0 || initChoice == 1) && "Erreur : initChoice incorrecte");
     assert(nKernel > 0 && "Erreur : nKernel incorrecte");
     assert(dimKer > 0 && "Erreur : dimKer incorrecte (dimension négative)");
-    assert(dimKer <= s.get_height() && dimKer <= s.get_width() && "Erreur : dimKer incorrecte (Ne rentre aps dans l'image)");
+    assert(dimKer <= s.get_height() && dimKer <= s.get_width() && "Erreur : dimKer incorrecte (Ne rentre pas dans l'image)");
     if (initChoice==0) {
         init_weight_Glorot(weight, gen);
     }
