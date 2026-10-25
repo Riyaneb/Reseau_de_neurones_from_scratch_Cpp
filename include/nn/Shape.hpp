@@ -2,6 +2,7 @@
 #define RESEAUDENEURONEFROMSCRATCH_SHAPE_HPP
 #include <cassert>
 #include "math/Types.hpp"
+#include "utils/stb_image_resize2.h"
 
 class Shape {
 public:
@@ -13,6 +14,7 @@ public:
     }
     Index total_values() const;
     Index get_column(Index c, Index h, Index w) const;
+
     Index get_channel() const;
     Index get_height() const;
     Index get_width() const;

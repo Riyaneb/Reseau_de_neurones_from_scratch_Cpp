@@ -45,6 +45,8 @@ set(CORE_SOURCE
         include/cnn/ConvLayer.hpp
         include/cnn/MaxPoolingLayer.hpp
         src/cnn/MaxPoolingLayer.cpp
+        include/utils/DatasetImage.hpp
+        src/utils/DatasetImage.cpp
 )
 
 set(TEST
@@ -62,6 +64,7 @@ add_library(libNeurone ${CORE_SOURCE}
         include/utils/Logger.hpp)
 target_compile_features(libNeurone PUBLIC cxx_std_17)
 target_include_directories(libNeurone PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_compile_definitions(libNeurone PUBLIC DATASET_DIR="${CMAKE_SOURCE_DIR}/data/dataset_images")
 
 if(CMAKE_CUDA_COMPILER)
     target_sources(libNeurone PRIVATE src/gpu/Gpu_calcul_matrix.cu)
