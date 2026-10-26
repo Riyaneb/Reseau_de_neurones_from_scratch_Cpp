@@ -10,8 +10,16 @@
 #include <cstdlib>
 #include <cassert>
 #include <algorithm>
+#include <fstream>
+#include <set>
+#include <cstring>
+#include <cstdint>
 
 namespace fs = std::filesystem;
+
+uint32_t DatasetImage::swap_endian(uint32_t val) {
+    return ((val << 24) & 0xFF000000) | ((val << 8)  & 0x00FF0000) | ((val >> 8)  & 0x0000FF00) | ((val >> 24) & 0x000000FF);
+}
 
 void DatasetImage::pixel_tab_to_matrix(unsigned char *tab, Matrix &m, Index row, Shape const &s) {
     assert(m.get_column() == s.total_values() && row >= 0 && row < m.get_row() && "Erreur : Problème de dimension entre le tableau de pixel et la matrice");
@@ -107,6 +115,152 @@ void DatasetImage::folder_class(std::string const &folder, DatasetImage &dataset
 
 }
 
+void DatasetImage::idx_data(std::string const &folder, DatasetImage &dataset) {
+    if (dataset.shape.get_channel() != 1) {
+        std::cerr << "Erreur : Problème sur le nombre de canal de couleur (1 pour les fichiers idx) " << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    fs::path idx1;
+    fs::path idx3;
+
+    fs::path dataset_path = fs::path(DATASET_DIR) / folder;
+
+    if (!fs::exists(dataset_path) || !fs::is_directory(dataset_path)) {
+        std::cerr << "Erreur : Le dossier n'existe pas : " << dataset_path << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    for (auto const &entry : fs::directory_iterator(dataset_path)) {
+        if (entry.is_regular_file()) {
+            std::string filename = entry.path().filename().string();
+            if (filename.find("idx3") != std::string::npos) {
+                idx3 = entry.path();
+            }
+            else if (filename.find("idx1") != std::string::npos) {
+                idx1 = entry.path();
+            }
+        }
+    }
+
+
+    if (!fs::exists(idx1) ||!fs::exists(idx3)) {
+        std::cerr << "Erreur : Un des deux fichiers idx n'existe pas: " << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    //Ouverture de idx1
+
+    std::ifstream fileIdx1(idx1, std::ios::binary);
+    if (!fileIdx1.is_open()) {
+        std::cerr << "Erreur lors de l'ouverture du fichier." << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    std::vector<char> buffer1(8);
+    if(!fileIdx1.read(buffer1.data(), 8)) {
+        std::cerr << "Erreur : Lecture incomplète ou fin de fichier atteinte" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    uint8_t b0 = static_cast<uint8_t>(buffer1[0]);
+    uint8_t b1 = static_cast<uint8_t>(buffer1[1]);
+    uint8_t b2 = static_cast<uint8_t>(buffer1[2]);
+    uint8_t b3 = static_cast<uint8_t>(buffer1[3]);
+
+    if (b0 != 0x00 || b1 != 0x00 || b2 != 0x08 || b3 != 0x01) {
+        std::cerr << "Erreur : Fichier idx1 invalide" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    uint32_t nLabels = 0;
+    std::memcpy(&nLabels,&buffer1[4],sizeof(uint32_t));
+    nLabels = swap_endian(nLabels);
+    std::vector<Index> label_images;
+
+    char c;
+    for (Index i = 0; i < nLabels; i++) {
+        if(!fileIdx1.get(c)) {
+            std::cerr << "Erreur : Impossible de lire l'octet suivant" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+        Index classN = static_cast<uint8_t>(c);
+        label_images.push_back(classN);
+    }
+
+    std::set<Index> unique_labels(label_images.begin(), label_images.end());
+    std::set<Index>::iterator it;
+    assert(nLabels > 0 && "Erreur : Aucun label trouvé");
+    auto max_element = *(std::max_element(unique_labels.begin(), unique_labels.end()));
+
+    dataset.labels = Matrix(static_cast<Index>(nLabels), max_element + 1);
+
+    for (it = unique_labels.begin(); it != unique_labels.end(); ++it) {
+        dataset.class_names.push_back(std::to_string(*it));
+    }
+
+    for (Index i = 0; i < nLabels; i++) {
+        assert(label_images[i] < (max_element + 1) && label_images[i] >= 0 && "Erreur : Valeur d'un label incorrect");
+        dataset.labels.get_value(i, label_images[i]) = 1;
+    }
+
+    fileIdx1.close();
+
+    //Ouverture de idx3
+
+    std::ifstream fileIdx3(idx3, std::ios::binary);
+    if (!fileIdx3.is_open()) {
+        std::cerr << "Erreur lors de l'ouverture du fichier." << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    std::vector<char> buffer2(16);
+    if(!fileIdx3.read(buffer2.data(),16)) {
+        std::cerr << "Erreur : Lecture incomplète ou fin de fichier atteinte" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    b0 = static_cast<uint8_t>(buffer2[0]);
+    b1 = static_cast<uint8_t>(buffer2[1]);
+    b2 = static_cast<uint8_t>(buffer2[2]);
+    b3 = static_cast<uint8_t>(buffer2[3]);
+
+    if (b0 != 0x00 || b1 != 0x00 || b2 != 0x08 || b3 != 0x03) {
+        std::cerr << "Erreur : Fichier idx3 invalide" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    uint32_t nImage = 0;
+    std::memcpy(&nImage,&buffer2[4],sizeof(uint32_t));
+    nImage = swap_endian(nImage);
+
+    uint32_t nRow = 0;
+    std::memcpy(&nRow,&buffer2[8],sizeof(uint32_t));
+    nRow = swap_endian(nRow);
+
+    uint32_t nCol = 0;
+    std::memcpy(&nCol,&buffer2[12],sizeof(uint32_t));
+    nCol = swap_endian(nCol);
+
+    if (static_cast<Index>(nImage) != nLabels || static_cast<Index>(nRow) != dataset.shape.get_height() || static_cast<Index>(nCol) != dataset.shape.get_width()) {
+        std::cerr << "Erreur : Dimension invalide dans le fichier idx3" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    dataset.images = Matrix(static_cast<Index>(nImage), dataset.shape.total_values());
+    std::vector<unsigned char> temp(dataset.shape.total_values());
+
+
+    for (Index i = 0; i < static_cast<Index>(nImage); i++) {
+        if (!fileIdx3.read(reinterpret_cast<char*>(temp.data()), dataset.get_shape().total_values())) {
+            std::cerr << "Erreur : Lecture incomplète ou fin de fichier atteinte" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+        pixel_tab_to_matrix(temp.data(), dataset.images,i,dataset.shape);
+    }
+
+    fileIdx3.close();
+}
+
 Shape const &DatasetImage::get_shape() const {
     return shape;
 }
@@ -139,6 +293,7 @@ DatasetImage::DatasetImage(Shape const &s, std::string p, int datasetType, std::
             folder_class(p,*this);
             break;
         case 1:
+            idx_data(p,*this);
             break;
         case 2:
             break;
@@ -181,4 +336,28 @@ void DatasetImage::shuffle() {
 
     images = tempIm;
     labels = temLab;
+}
+
+std::pair<Matrix, Matrix> DatasetImage::get_batch(Index begin_row, Index size) const {
+    assert(begin_row < images.get_row() && size > 0 && images.get_row() == labels.get_row() && "Erreur : Dimension incorrecte");
+    Index sizeDynam = std::min(size,images.get_row() - begin_row);
+
+    Matrix resIm(sizeDynam, images.get_column());
+    Matrix resLab(sizeDynam, labels.get_column());
+
+    Index cpt = 0;
+
+    for (Index i = begin_row; i < begin_row + sizeDynam; ++i) {
+        for (Index j = 0; j < images.get_column(); ++j) {
+            resIm.get_value(cpt,j) = images.get_value(i,j);
+        }
+        for (Index j = 0; j < labels.get_column(); ++j) {
+            resLab.get_value(cpt,j) = labels.get_value(i,j);
+        }
+        cpt++;
+    }
+
+    std::pair<Matrix, Matrix> res = std::make_pair(std::move(resIm), std::move(resLab));
+    return res;
+
 }

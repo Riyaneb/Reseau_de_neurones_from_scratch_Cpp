@@ -2,7 +2,6 @@
 #define RESEAUDENEURONEFROMSCRATCH_SHAPE_HPP
 #include <cassert>
 #include "math/Types.hpp"
-#include "utils/stb_image_resize2.h"
 
 class Shape {
 public:

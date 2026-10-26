@@ -21,14 +21,16 @@ public:
     Index get_nImages() const;
 
     void shuffle();
+    std::pair<Matrix, Matrix> get_batch(Index row, Index size) const;
 
 private:
     static void folder_class(std::string const &folder, DatasetImage &dataset);
     static void label_name(std::string const &folder, DatasetImage &dataset) {};
     static void csv_link(std::string const &folder, DatasetImage &dataset){};
-    static void bin_data(std::string const &folder, DatasetImage &dataset){};
+    static void idx_data(std::string const &folder, DatasetImage &dataset);
 
     static void pixel_tab_to_matrix(unsigned char* tab, Matrix &m, Index row, Shape const &s);
+    static uint32_t swap_endian(uint32_t val);
 
     Shape shape;
     std::string path;
@@ -37,5 +39,6 @@ private:
     std::vector<std::string> class_names;
     Random gen;
 };
+
 
 #endif //RESEAUDENEURONEFROMSCRATCH_DATASETIMAGE_HPP
