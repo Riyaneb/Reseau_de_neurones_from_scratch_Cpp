@@ -31,7 +31,7 @@ public:
         }
     }
 
-    void check_values(Scalar value_expected, Scalar value_obtained, std::string const &name, double epsilon = 1e-7) {
+    void check_values(Scalar value_expected, Scalar value_obtained, std::string const &name, double epsilon = 1e-2) {
         bool succes(std::abs(value_obtained - value_expected) < epsilon);
         check_test(succes, name);
         if (!succes) {

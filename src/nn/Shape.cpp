@@ -9,7 +9,7 @@ Index Shape::get_column(Index c, Index h, Index w) const {
     return c*(height*width) + h*width + w;
 }
 
-stbir_pixel_layout Shape::get_channel() const {
+Index Shape::get_channel() const {
     return channel;
 }
 
