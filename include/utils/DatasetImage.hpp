@@ -5,6 +5,7 @@
 #include "math/Matrix.hpp"
 #include "nn/Shape.hpp"
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "math/Random.hpp"

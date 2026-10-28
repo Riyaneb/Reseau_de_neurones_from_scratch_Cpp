@@ -37,7 +37,7 @@ int main() {
     auto parameters = net.get_parameters();
     Adam optimizer(parameters, 0.001);
 
-    int const EPOCH = 10;
+    int const EPOCH = 50;
     Timer t;
 
     cout << "Début de l'entrainement" << endl;

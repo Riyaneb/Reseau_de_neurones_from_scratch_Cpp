@@ -2,6 +2,10 @@
 #include "utils/DatasetImage.hpp"
 #include <filesystem>
 #include <iostream>
+
+#define STB_IMAGE_STATIC
+#define STB_IMAGE_RESIZE_STATIC
+
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
 

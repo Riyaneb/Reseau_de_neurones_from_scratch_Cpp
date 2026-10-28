@@ -4,6 +4,7 @@ project(ReseauDeNeuroneFromScratch LANGUAGES CXX)
 
 include(CheckLanguage)
 check_language(CUDA)
+
 if(CMAKE_CUDA_COMPILER)
     enable_language(CUDA)
     set(CMAKE_CUDA_STANDARD 17)
@@ -47,6 +48,8 @@ set(CORE_SOURCE
         src/cnn/MaxPoolingLayer.cpp
         include/utils/DatasetImage.hpp
         src/utils/DatasetImage.cpp
+        src/utils/PredictionCnn.cpp
+        include/utils/PredictionCnn.hpp
 )
 
 set(TEST
@@ -59,6 +62,13 @@ set(TEST
         tests/test_random.cpp
         tests/test_corridor_env.cpp
 )
+
+include(FetchContent)
+FetchContent_Declare(raylib GIT_REPOSITORY https://github.com/raysan5/raylib.git GIT_TAG 6.2 GIT_SHALLOW TRUE)
+set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+
+FetchContent_MakeAvailable(raylib)
+
 
 add_library(libNeurone ${CORE_SOURCE}
         include/utils/Logger.hpp)
@@ -120,6 +130,10 @@ target_link_libraries(test_module PRIVATE libNeurone)
 target_compile_features(test_module PRIVATE cxx_std_17)
 set_target_properties(test_module PROPERTIES CXX_EXTENSIONS OFF)
 
+add_executable(gui_cnn apps/gui_cnn.cpp)
+target_link_libraries(gui_cnn PRIVATE libNeurone raylib)
+target_compile_features(gui_cnn PRIVATE cxx_std_17)
+set_target_properties(gui_cnn PROPERTIES CXX_EXTENSIONS OFF)
 
 if(MSVC)
     target_compile_options(libNeurone PRIVATE $<$<COMPILE_LANGUAGE:CXX>:/W4>)
