@@ -7,10 +7,10 @@ ConvLayer::ConvLayer(Shape const &s, Index nKernel, Index dimKer, Random &gen, I
     assert(dimKer > 0 && "Erreur : dimKer incorrecte (dimension négative)");
     assert(dimKer <= s.get_height() && dimKer <= s.get_width() && "Erreur : dimKer incorrecte (Ne rentre pas dans l'image)");
     if (initChoice==0) {
-        init_weight_Glorot(weight, gen);
+        init_weight_Glorot_CNN(weight, gen, dimKer);
     }
     else if (initChoice==1) {
-        init_weight_He(weight,gen);
+        init_weight_He_CNN(weight,gen);
     }
 }
 

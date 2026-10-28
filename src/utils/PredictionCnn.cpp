@@ -36,13 +36,18 @@ Answer_gui prediction_image(DatasetImage& dataset, Index num_image, Shape const 
     bool answer = false;
 
     net.add(make_unique<ConvLayer>(s,8,3,gen,1));
-    net.add(make_unique<ReLU>(5408));
-    net.add(make_unique<MaxPoolingLayer>(Shape(8,26,26),2));
-    net.add(make_unique<FlattenLayer>(Shape(8,13,13)));
-    net.add(make_unique<DenseLayer>(1352,10,gen));
-    net.add(make_unique<SoftmaxLayer>(10));
+    net.add(make_unique<ReLU>(30752));
+    net.add(make_unique<MaxPoolingLayer>(Shape(8,62,62),2));
+    net.add(make_unique<ConvLayer>(Shape(8,31,31),16,3,gen,1));
+    net.add(make_unique<ReLU>(13456));
+    net.add(make_unique<MaxPoolingLayer>(Shape(16,29,29),2));
+    net.add(make_unique<FlattenLayer>(Shape(16,14,14)));
+    net.add(make_unique<DenseLayer>(3136,64,gen));
+    net.add(make_unique<ReLU>(64));
+    net.add(make_unique<DenseLayer>(64,2,gen));
+    net.add(make_unique<SoftmaxLayer>(2));
 
-    load(net,"models/reseau_mnist.txt");
+    load(net,"models/chest_xray.txt");
 
     pair<Matrix, Matrix> batch = dataset.get_batch(num_image, 1);
     Matrix pred = net.forward(batch.first);

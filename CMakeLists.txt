@@ -135,6 +135,16 @@ target_link_libraries(gui_cnn PRIVATE libNeurone raylib)
 target_compile_features(gui_cnn PRIVATE cxx_std_17)
 set_target_properties(gui_cnn PROPERTIES CXX_EXTENSIONS OFF)
 
+add_executable(test_cnn apps/test_cnn.cpp)
+target_link_libraries(test_cnn PRIVATE libNeurone)
+target_compile_features(test_cnn PRIVATE cxx_std_17)
+set_target_properties(test_cnn PROPERTIES CXX_EXTENSIONS OFF)
+
+add_executable(train_cnn apps/train_cnn.cpp)
+target_link_libraries(train_cnn PRIVATE libNeurone)
+target_compile_features(train_cnn PRIVATE cxx_std_17)
+set_target_properties(train_cnn PROPERTIES CXX_EXTENSIONS OFF)
+
 if(MSVC)
     target_compile_options(libNeurone PRIVATE $<$<COMPILE_LANGUAGE:CXX>:/W4>)
 else()

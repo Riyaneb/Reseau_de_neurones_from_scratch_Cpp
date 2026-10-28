@@ -13,10 +13,16 @@ Index SoftmaxLayer::nOutput() const {
 
 Scalar SoftmaxLayer::fn_softmax(Matrix const &M,Index row,Index column) {
     Scalar sum = 0;
+    Scalar maxi = M.get_value(row, 0);
     for (Index k = 0; k < M.get_column(); k++) {
-        sum += std::exp(M.get_value(row,k));
+        if (M.get_value(row,k) > maxi) {
+            maxi = M.get_value(row,k);
+        }
     }
-    return (std::exp(M.get_value(row,column)))/sum;
+    for (Index k = 0; k < M.get_column(); k++) {
+        sum += std::exp(M.get_value(row,k) - maxi);
+    }
+    return (std::exp(M.get_value(row,column) - maxi))/sum;
 }
 
 Matrix SoftmaxLayer::forward(Matrix const &in) {
