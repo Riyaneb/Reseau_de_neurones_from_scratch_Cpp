@@ -1,8 +1,8 @@
-# Réseau de neurones & Agent DQN from scratch en C++
+# Réseau de neurones & Agent DQN / CNN from scratch en C++
 
-Un réseau de neurones et un agent qui apprend à jouer à Snake, codés en C++17, sans utiliser aucune bibliothèque externe (PyTorch, TensorFlow).
+Un réseau de neurones, un agent qui apprend à jouer à Snake, ainsi qu'un réseau CNN codés en C++17, sans utiliser aucune bibliothèque externe (PyTorch, TensorFlow).
 
-Le projet part du calcul le plus simple et va jusqu'à un agent qui apprend à jouer à Snake tout seul, en passant par toutes les étapes intermédiaires. Chaque étape est vérifiée par des tests automatiques : plus de **580 tests** au total.
+Le projet part du calcul le plus simple et va jusqu'à un agent qui apprend à jouer à Snake et à reconnaitre des images, tout seul, en passant par toutes les étapes intermédiaires. Chaque étape est vérifiée par des tests automatiques : plus de **580 tests** au total.
 
 Projet personnel fait pour comprendre comment fonctionne un réseau de neurones, plutôt que d'utiliser un outil qui fait tout à ma place.
 
@@ -614,8 +614,8 @@ Prérequis : CMake ≥ 3.22, un compilateur C++17 (GCC, Clang ou MSVC).
 Le réseau, les couches et l'entraînement restent écrits avec la seule bibliothèque standard du C++. `stb` ne sert qu'à lire les images et raylib qu'à l'interface graphique.
 
 ```bash
-git clone https://github.com/Riyaneb/Reseau_de_neurones_from_scratch_complet_Cpp.git
-cd Reseau_de_neurones_from_scratch_complet_Cpp
+git clone https://github.com/Riyaneb/Reseau_de_neurones_from_scratch_Cpp.git
+cd Reseau_de_neurones_from_scratch_Cpp
 mkdir build && cd build
 cmake -DCMAKE_BUILD_TYPE=Release ..
 cmake --build .
