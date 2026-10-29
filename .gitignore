@@ -1,4 +1,4 @@
 build/
 cmake-build-debug
 /data/dataset_images/chest_xray/
-/data/dataset_images/MNIST/
+/data/dataset_images/MNIST/²
