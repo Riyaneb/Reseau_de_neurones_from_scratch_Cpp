@@ -54,7 +54,7 @@ Matrix ConvLayer::forward(Matrix const &in) {
     Index nbPos = shapeOut.get_height() * shapeOut.get_width();
     Shape sKernel(shapeIn.get_channel(), sizeKernel, sizeKernel);
     im2col = Matrix(in.get_row() * nbPos,sKernel.total_values());
-    #pragma omp parallel for collapse(3) schedule(dynamic,8)
+    #pragma omp parallel for schedule(dynamic,1)
     for (Index i = 0; i < in.get_row(); i++) {
         for (Index h = 0; h < shapeOut.get_height(); h++) {
             for (Index w = 0; w < shapeOut.get_width(); w++) {
@@ -71,7 +71,7 @@ Matrix ConvLayer::forward(Matrix const &in) {
         }
     }
     Matrix res = (im2col * weight.transpose()).broadcast(biais);
-    #pragma omp parallel for collapse(3) schedule(dynamic,8)
+    #pragma omp parallel for schedule(dynamic,1)
     for (Index i = 0; i < in.get_row(); i++) {
         for (Index p = 0; p < nbPos; p++) {
             for (Index k = 0; k < nKer; k++) {
@@ -88,7 +88,7 @@ Matrix ConvLayer::backward(Matrix const &gradientOut) {
     Index nbPos = shapeOut.get_height() * shapeOut.get_width();
     assert(gradientOut.get_column() == nOutput() && gradientOut.get_row() * nbPos == im2col.get_row() && "Erreur : Dimension gradientOut");
     Matrix gradRes(nbPos*gradientOut.get_row(), nKer);
-    #pragma omp parallel for collapse(3) schedule(dynamic,8)
+    #pragma omp parallel for schedule(dynamic,1)
     for (Index i = 0; i < gradientOut.get_row(); i++) {
         for (Index p = 0; p < nbPos; p++) {
             for (Index k = 0; k < nKer; k++) {
@@ -100,7 +100,7 @@ Matrix ConvLayer::backward(Matrix const &gradientOut) {
     gradBiais = gradRes.sum_row();
     Matrix gradBlocX = gradRes * weight;
     Matrix gradX(gradientOut.get_row(), nInput(), 0);
-    #pragma omp parallel for collapse(3) schedule(dynamic,8)
+    #pragma omp parallel for schedule(dynamic,1)
     for (Index i = 0; i < gradX.get_row(); i++) {
         for (Index h = 0; h < shapeOut.get_height(); h++) {
             for (Index w = 0; w < shapeOut.get_width(); w++) {
@@ -108,7 +108,6 @@ Matrix ConvLayer::backward(Matrix const &gradientOut) {
                 for (Index c = 0; c < shapeIn.get_channel(); c++) {
                     for (Index hk = 0; hk < sizeKernel; hk++) {
                         for (Index wk = 0; wk < sizeKernel; wk++) {
-                            #pragma omp atomic
                             gradX.get_value(i,shapeIn.get_column(c,hk+h,wk+w)) += gradBlocX.get_value(i*(nbPos) + h*shapeOut.get_width() + w,cptK);
                             cptK++;
                         }

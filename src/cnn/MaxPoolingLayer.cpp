@@ -35,11 +35,11 @@ Matrix MaxPoolingLayer::forward(Matrix const &in) {
     assert(in.get_column() == nInput() && "Erreur : Dimension de l'entrée incorrecte");
     Matrix result(in.get_row(), nOutput());
     posMaxim = Matrix(in.get_row(), nOutput());
-    Scalar maxi;
-    Index maxi_id;
 
-    #pragma omp parallel for schedule(dynamic,8)
+    #pragma omp parallel for schedule(dynamic,1)
     for (Index i = 0; i < in.get_row(); i++) {
+        Scalar maxi;
+        Index maxi_id;
         Index cpt = 0;
         for (Index c = 0; c < shapeIn.get_channel(); c++){
             for (Index h = 0; h < shapeOut.get_height() * sizeKernel; h+=sizeKernel) {
@@ -68,7 +68,7 @@ Matrix MaxPoolingLayer::forward(Matrix const &in) {
 Matrix MaxPoolingLayer::backward(Matrix const &gradientOut) {
     assert(gradientOut.get_column() == nOutput() && gradientOut.get_row() == posMaxim.get_row() && "Erreur : Dimension gradientOut incorrecte");
     Matrix gradX(gradientOut.get_row(), nInput(), 0);
-    #pragma omp parallel for collapse(2) schedule(dynamic,8)
+    #pragma omp parallel for schedule(dynamic,1)
     for (Index i = 0; i < gradientOut.get_row(); i++) {
         for (Index j = 0; j < posMaxim.get_column(); j++) {
             gradX.get_value(i,(Index)posMaxim.get_value(i,j)) = gradientOut.get_value(i,j);

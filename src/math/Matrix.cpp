@@ -91,7 +91,7 @@ bool Matrix::isSquare() const {
 
 Matrix Matrix::transpose() const {
     Matrix result(column,row);
-    #pragma omp parallel for if(row*column > MIN_SIZE_OMP) collapse(2) schedule(dynamic,8)
+    #pragma omp parallel for if(row*column > MIN_SIZE_OMP) schedule(dynamic,2048)
     for (Index i = 0; i < row; ++i) {
         for (Index j = 0; j < column; ++j) {
             result.get_value(j,i) = this->get_value(i,j);
@@ -102,7 +102,7 @@ Matrix Matrix::transpose() const {
 
 Matrix &Matrix::broadcast(Matrix const &biais) {
     assert(biais.row == 1 && biais.column == column && "Erreur : Dimension du biais incorrect");
-    #pragma omp parallel for if(row*column > MIN_SIZE_OMP) schedule(dynamic,8)
+    #pragma omp parallel for if(row*column > MIN_SIZE_OMP) schedule(dynamic,2048)
     for (Index i = 0; i < row; ++i) {
         for (Index j = 0; j < column; ++j) {
             this->get_value(i,j) += biais.get_value(0,j);
@@ -134,14 +134,19 @@ Matrix Matrix::multiplyMatrixCPU(Matrix const &m1, Matrix const &m2) {
     const Scalar* p1 = m1.get_ptr_matrix();
     const Scalar* p2 = m2.get_ptr_matrix();
 
-    #pragma omp parallel for if(m1.get_row() * m1.get_column() * m2.get_column() > MIN_SIZE_OMP) collapse(3) schedule(dynamic,8)
+    long long chunk = 16384 / (m1.get_column() * m2.get_column());
+    
+    if (chunk < 1) {
+        chunk = 1;
+    }
+
+    #pragma omp parallel for if(static_cast<long long>(m1.get_row() * m1.get_column() * m2.get_column()) > MIN_SIZE_OMP) schedule(dynamic,chunk)
     for (Index i = 0; i < m1.get_row(); ++i) {
         Scalar* res_i = res + i * m2.get_column();
         for (Index k = 0; k < m1.get_column(); ++k) {
             Scalar val_m1 = p1[i * m1.get_column() + k];
             const Scalar* m2_k = p2 + k * m2.get_column();
             for (Index j = 0; j < m2.get_column(); ++j) {
-                #pragma omp atomic
                 res_i[j] += val_m1 * m2_k[j];
             }
         }

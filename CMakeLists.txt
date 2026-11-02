@@ -39,7 +39,6 @@ set(CORE_SOURCE
         include/gpu/GpuCudaCheck.hpp
         include/gpu/Gpu_calcul_matrix.hpp
         include/nn/Shape.hpp
-        src/nn/Shape.cpp
         include/cnn/FlattenLayer.hpp
         src/cnn/FlattenLayer.cpp
         src/cnn/ConvLayer.cpp
