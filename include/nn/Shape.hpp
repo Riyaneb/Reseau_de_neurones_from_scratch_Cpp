@@ -14,9 +14,17 @@ public:
     Index total_values() const;
     Index get_column(Index c, Index h, Index w) const;
 
-    Index get_channel() const;
-    Index get_height() const;
-    Index get_width() const;
+    inline Index get_channel() const {
+        return channel;
+    }
+
+    inline Index get_height() const {
+        return height;
+    }
+
+    inline Index get_width() const {
+        return width;
+    }
 private:
     Index channel;
     Index height;

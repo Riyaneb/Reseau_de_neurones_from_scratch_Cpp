@@ -37,7 +37,7 @@ int main() {
     auto parameters = net.get_parameters();
     Adam optimizer(parameters, 0.001);
 
-    int const EPOCH = 50;
+    int const EPOCH = 1;
     Timer t;
 
     cout << "Début de l'entrainement" << endl;
@@ -60,7 +60,7 @@ int main() {
         cout <<"Erreur moyenne à l'epoch "<< epoch <<": "<< error << endl;
 
     }
-    cout << "Fin de l'entrainement (Temps écoulé en release pour 10 epochs : " << t.elapsed() << "s)" << endl;
+    cout << "Fin de l'entrainement (Temps écoulé en release pour 1 epochs : " << t.elapsed() << "s)" << endl;
     save(net, "models/reseau_mnist.txt");
 
     return 0;

@@ -13,6 +13,7 @@ Matrix ActivationLayer::forward(Matrix const &in) {
     assert(in.get_column() == nbInput && "Erreur : Dimension dans le forward activationLayer Incorrecte");
     input = in;
     Matrix result(input.get_row(), input.get_column());
+    #pragma omp parallel for collapse(2) schedule(dynamic,1)
     for (Index i = 0; i < input.get_row(); i++) {
         for (Index j = 0; j < input.get_column(); j++) {
             result.get_value(i,j) = apply(input.get_value(i,j));
@@ -24,6 +25,8 @@ Matrix ActivationLayer::forward(Matrix const &in) {
 Matrix ActivationLayer::backward(Matrix const &gradientOut) {
     assert(gradientOut.get_column() == input.get_column() && gradientOut.get_row() == input.get_row() && "Dimension de la matrice des gradients ne correspond pas au nombre de neurones de la couche précédente");
     Matrix gradient_activation_fn(input.get_row(), input.get_column(),0);
+
+    #pragma omp parallel for collapse(2) schedule(dynamic,1)
     for (Index i = 0; i < input.get_row(); i++) {
         for (Index j = 0; j < input.get_column(); j++) {
             gradient_activation_fn.get_value(i,j) = derivate_fn(input.get_value(i,j));

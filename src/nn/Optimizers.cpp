@@ -29,6 +29,7 @@ void Adam::update_parameters(PairParameters &parameters) {
         Matrix temp1 = first_moments_params[i] * (1.0 / (1 - std::pow(beta1,cpt)));
         Matrix temp2 = second_moments_params[i] * (1.0 / (1 - std::pow(beta2,cpt)));
 
+        #pragma omp parallel for collapse(2) schedule(dynamic, 256)
         for (int k = 0 ; k < parameters[i].first->get_row() ; k++ ) {
             for (int j = 0 ; j < parameters[i].first->get_column() ; j++ ) {
                 parameters[i].first->get_value(k,j) -= (rate * temp1.get_value(k,j)) / (std::sqrt(temp2.get_value(k,j)) + epsilon);
