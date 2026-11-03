@@ -30,7 +30,10 @@ Matrix DenseLayer::backward(Matrix const &gradientOut) {
     assert(gradientOut.get_column() == nOutput() && gradientOut.get_row() == inNeural.get_row() && "Erreur : Problème de dimension avec les gradient reçu des couches de sortie");
     gradWeight = inNeural.transpose() * gradientOut;
     gradBiais = gradientOut.sum_row();
-    return gradientOut * weight.transpose();
+    if (need_grad_input) {
+        return gradientOut * weight.transpose();
+    }
+    return Matrix(1,1);
 }
 
 void DenseLayer::set_weight(Matrix const &w) {

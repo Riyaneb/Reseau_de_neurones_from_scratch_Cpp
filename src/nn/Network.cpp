@@ -8,8 +8,12 @@ void Network::add(std::unique_ptr<Layer> layer) {
     if (!layers.empty()) {
         assert(layer->nInput() == layers.back()->nOutput() && "Erreur : Le nombre d'entrée de la nouvelle couche ne correspond pas au nombre de sortie de la dernière couche");
     }
+    else {
+        layer->set_need_grad_input(false);
+    }
     layers_name.push_back(layer->layer_name());
     layers.push_back(std::move(layer));
+
 }
 
 Matrix Network::forward(Matrix const &X) {

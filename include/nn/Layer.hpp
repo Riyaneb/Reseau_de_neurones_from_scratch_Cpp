@@ -3,6 +3,7 @@
 
 #include "math/Matrix.hpp"
 #include <memory>
+#include <set>
 #include <string>
 
 class Layer {
@@ -16,6 +17,12 @@ public:
     virtual PairParameters get_parameters();
     virtual void set_gradients_zero();
     virtual std::unique_ptr<Layer> clone() const = 0;
+
+    void set_need_grad_input(bool choice) {
+        need_grad_input = choice;
+    }
+protected:
+    bool need_grad_input = true;
 };
 
 #endif //RESEAU_DE_NEURONES_FROM_SCRATCH_C_LAYER_HPP

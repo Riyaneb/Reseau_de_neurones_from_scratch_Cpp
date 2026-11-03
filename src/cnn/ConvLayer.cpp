@@ -98,23 +98,26 @@ Matrix ConvLayer::backward(Matrix const &gradientOut) {
     }
     gradWeight = gradRes.transpose() * im2col;
     gradBiais = gradRes.sum_row();
-    Matrix gradBlocX = gradRes * weight;
-    Matrix gradX(gradientOut.get_row(), nInput(), 0);
-    #pragma omp parallel for schedule(dynamic,1)
-    for (Index i = 0; i < gradX.get_row(); i++) {
-        for (Index h = 0; h < shapeOut.get_height(); h++) {
-            for (Index w = 0; w < shapeOut.get_width(); w++) {
-                Index cptK = 0;
-                for (Index c = 0; c < shapeIn.get_channel(); c++) {
-                    for (Index hk = 0; hk < sizeKernel; hk++) {
-                        for (Index wk = 0; wk < sizeKernel; wk++) {
-                            gradX.get_value(i,shapeIn.get_column(c,hk+h,wk+w)) += gradBlocX.get_value(i*(nbPos) + h*shapeOut.get_width() + w,cptK);
-                            cptK++;
+    if (need_grad_input) {
+        Matrix gradBlocX = gradRes * weight;
+        Matrix gradX(gradientOut.get_row(), nInput(), 0);
+        #pragma omp parallel for schedule(dynamic,1)
+        for (Index i = 0; i < gradX.get_row(); i++) {
+            for (Index h = 0; h < shapeOut.get_height(); h++) {
+                for (Index w = 0; w < shapeOut.get_width(); w++) {
+                    Index cptK = 0;
+                    for (Index c = 0; c < shapeIn.get_channel(); c++) {
+                        for (Index hk = 0; hk < sizeKernel; hk++) {
+                            for (Index wk = 0; wk < sizeKernel; wk++) {
+                                gradX.get_value(i,shapeIn.get_column(c,hk+h,wk+w)) += gradBlocX.get_value(i*(nbPos) + h*shapeOut.get_width() + w,cptK);
+                                cptK++;
+                            }
                         }
                     }
                 }
             }
         }
+        return gradX;
     }
-    return gradX;
+    return Matrix(1,1);
 }
