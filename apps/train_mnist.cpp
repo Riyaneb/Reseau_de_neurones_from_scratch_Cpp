@@ -111,6 +111,20 @@ int main() {
 
     cout << "\nTemps non mesuré : " << epoch_t - sum_t << "s" << endl;
 
+    cout << "\nDétail backward Convolution :" << endl;
+    cout << "Rangement gradRes : " << ConvLayer::b_gradRes_t << "s" << endl;
+    cout << "gradWeight : " << ConvLayer::b_gradWeight_t << "s" << endl;
+    cout << "gradBiais : " << ConvLayer::b_gradBiais_t << "s" << endl;
+    cout << "Reste : " << b_t[0] - ConvLayer::b_gradRes_t - ConvLayer::b_gradWeight_t - ConvLayer::b_gradBiais_t << "s" << endl;
+
+
+    cout << "\nDétail forward Convolution :" << endl;
+    cout << "im2col : " << ConvLayer::f_im2col_t << "s" << endl;
+    cout << "Produit : " << ConvLayer::f_line_t << "s" << endl;
+    cout << "broadcast : " << ConvLayer::f_broadcast_t << "s" << endl;
+    cout << "Rangement sortie : " << ConvLayer::f_res_t << "s" << endl;
+    cout << "Reste : " << f_t[0] - ConvLayer::f_im2col_t - ConvLayer::f_line_t - ConvLayer::f_broadcast_t - ConvLayer::f_res_t << "s" << endl;
+
     save(net, "models/reseau_mnist.txt");
 
     return 0;

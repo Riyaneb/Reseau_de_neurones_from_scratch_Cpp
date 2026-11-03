@@ -1,6 +1,9 @@
 #include "math/Matrix.hpp"
 #include <cassert>
 #include <iostream>
+#include <omp.h>
+#include <mimalloc-new-delete.h>
+
 #ifdef USE_CUDA
     #include "gpu/Gpu_calcul_matrix.hpp"
 #endif
@@ -118,10 +121,26 @@ Matrix broadcast(Matrix const &m, Matrix const &biais) {
 
 Matrix Matrix::sum_row() const {
     Matrix result(1,column);
-    #pragma omp parallel for if(row*column > MIN_SIZE_OMP) schedule(dynamic,8)
-    for (Index j = 0; j < column; ++j) {
+    long long chunk = 16384 / (column);
+    if (chunk < 1) {
+        chunk = 1;
+    }
+    #pragma omp parallel if(row*column > MIN_SIZE_OMP)
+    {
+        Matrix temp(1,column,0);
+
+        #pragma omp for schedule(dynamic,chunk)
         for (Index i = 0; i < row; ++i) {
-            result.get_value(0,j) += this->get_value(i,j);
+            for (Index j = 0; j < column; ++j) {
+                temp.get_value(0,j) += this->get_value(i,j);
+            }
+        }
+
+        #pragma omp critical
+        {
+            for (Index i = 0; i < column; ++i) {
+                result.get_value(0,i) += temp.get_value(0,i);
+            }
         }
     }
     return result;
@@ -134,19 +153,44 @@ Matrix Matrix::multiplyMatrixCPU(Matrix const &m1, Matrix const &m2) {
     const Scalar* p2 = m2.get_ptr_matrix();
 
     long long chunk = 16384 / (m1.get_column() * m2.get_column());
+    long long chunk2 = 16384 / (m1.get_row() * m2.get_column());
     
     if (chunk < 1) {
         chunk = 1;
     }
 
-    #pragma omp parallel for if(static_cast<long long>(m1.get_row() * m1.get_column() * m2.get_column()) > MIN_SIZE_OMP) schedule(dynamic,chunk)
-    for (Index i = 0; i < m1.get_row(); ++i) {
-        Scalar* res_i = res + i * m2.get_column();
-        for (Index k = 0; k < m1.get_column(); ++k) {
-            Scalar val_m1 = p1[i * m1.get_column() + k];
-            const Scalar* m2_k = p2 + k * m2.get_column();
-            for (Index j = 0; j < m2.get_column(); ++j) {
-                res_i[j] += val_m1 * m2_k[j];
+    if (m1.get_row() < omp_get_max_threads() && m1.get_column() >= 1024) {
+#pragma omp parallel
+        {
+            std::vector<Scalar> temp(m1.get_row() * m2.get_column(), 0);
+
+#pragma omp for schedule(dynamic,chunk2)
+            for (Index k = 0; k < m1.get_column(); ++k){
+                for (Index i = 0; i < m1.get_row(); ++i) {
+                    Scalar val_m1 = p1[i * m1.get_column() + k];
+                    for (Index j = 0; j < m2.get_column(); ++j) {
+                        temp[i*m2.get_column() + j] += val_m1 * p2[k * m2.get_column() + j];
+                    }
+                }
+            }
+#pragma omp critical
+            {
+                for (Index i = 0; i < m1.get_row() * m2.get_column(); ++i) {
+                    res[i] += temp[i];
+                }
+            }
+        }
+    }
+    else {
+        #pragma omp parallel for if(static_cast<long long>(m1.get_row() * m1.get_column() * m2.get_column()) > MIN_SIZE_OMP) schedule(dynamic,chunk)
+        for (Index i = 0; i < m1.get_row(); ++i) {
+            Scalar* res_i = res + i * m2.get_column();
+            for (Index k = 0; k < m1.get_column(); ++k) {
+                Scalar val_m1 = p1[i * m1.get_column() + k];
+                const Scalar* m2_k = p2 + k * m2.get_column();
+                for (Index j = 0; j < m2.get_column(); ++j) {
+                    res_i[j] += val_m1 * m2_k[j];
+                }
             }
         }
     }
