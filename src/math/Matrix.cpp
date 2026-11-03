@@ -7,7 +7,7 @@
 #ifdef USE_CUDA
     #include "gpu/Gpu_calcul_matrix.hpp"
 #endif
-#define MIN_SIZE 10000000
+#define MIN_SIZE 100000000
 
 Index Matrix::check_size(Index l, Index c) {
     assert(l > 0 && c >0 && "Le nombre de ligne ou de colonne de la matrice est négatif ou nulle");

@@ -44,7 +44,7 @@ int main() {
     auto parameters = net.get_parameters();
     Adam optimizer(parameters, 0.001);
 
-    int const EPOCH = 67;
+    int const EPOCH = 1;
     Timer t;
 
     cout << "Début de l'entrainement" << endl;
@@ -71,7 +71,7 @@ int main() {
         }
 
     }
-    cout << "Fin de l'entrainement (Temps écoulé en release pour 20 epochs : " << t.elapsed() << "s)" << endl;
+    cout << "Fin de l'entrainement (Temps écoulé en release pour 1 epochs : " << t.elapsed() << "s)" << endl;
     save(net, "models/chest_xray.txt");
 
     return 0;
