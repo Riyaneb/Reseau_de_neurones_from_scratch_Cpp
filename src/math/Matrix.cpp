@@ -159,6 +159,10 @@ Matrix Matrix::multiplyMatrixCPU(Matrix const &m1, Matrix const &m2) {
         chunk = 1;
     }
 
+    if (chunk2 < 1) {
+        chunk2 = 1;
+    }
+
     if (m1.get_row() < omp_get_max_threads() && m1.get_column() >= 1024) {
 #pragma omp parallel
         {

@@ -19,14 +19,6 @@ public:
         return "Convolution";
     }
 
-    static double b_gradRes_t;
-    static double b_gradWeight_t;
-    static double b_gradBiais_t;
-
-    static double f_im2col_t;
-    static double f_line_t;
-    static double f_broadcast_t;
-    static double f_res_t;
 private:
     Shape shapeIn;
     Shape shapeOut;

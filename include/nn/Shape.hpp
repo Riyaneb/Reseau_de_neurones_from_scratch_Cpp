@@ -12,11 +12,11 @@ public:
         width = w;
     }
 
-    inline Index Shape::total_values() const{
+    inline Index total_values() const{
         return channel*height*width;
     }
 
-    inline Index Shape::get_column(Index c, Index h, Index w) const {
+    inline Index get_column(Index c, Index h, Index w) const {
         assert((c < channel) && (h < height) && (w < width) && (c >= 0) && (h >= 0) && (w >= 0) && "Erreur : Erreur dans les paramètres");
         return c*(height*width) + h*width + w;
     }

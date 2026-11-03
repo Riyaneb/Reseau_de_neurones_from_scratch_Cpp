@@ -3,14 +3,6 @@
 
 #include "utils/Timer.hpp"
 
-double ConvLayer::b_gradRes_t = 0;
-double ConvLayer::b_gradWeight_t = 0;
-double ConvLayer::b_gradBiais_t = 0;
-
-double ConvLayer::f_im2col_t = 0;
-double ConvLayer::f_line_t = 0;
-double ConvLayer::f_broadcast_t = 0;
-double ConvLayer::f_res_t = 0;
 
 ConvLayer::ConvLayer(Shape const &s, Index nKernel, Index dimKer, Random &gen, Index initChoice) : shapeIn(s), shapeOut(nKernel, s.get_height() - dimKer + 1, s.get_width() - dimKer + 1), sizeKernel(dimKer),nKer(nKernel), weight(nKernel, s.get_channel()*dimKer*dimKer), biais(1, nKernel), gradWeight(nKernel, s.get_channel()*dimKer*dimKer,0), gradBiais(1, nKernel,0), im2col(1,1) {
     assert((initChoice == 0 || initChoice == 1) && "Erreur : initChoice incorrecte");
@@ -84,15 +76,12 @@ Matrix ConvLayer::forward(Matrix const &in) {
             }
         }
     }
-    f_im2col_t += t.elapsed();
 
     t.reset();
     Matrix res = im2col * weight.transpose();
-    f_line_t += t.elapsed();
 
     t.reset();
     res.broadcast(biais);
-    f_broadcast_t += t.elapsed();
 
     t.reset();
     #pragma omp parallel for schedule(dynamic,1)
@@ -103,17 +92,14 @@ Matrix ConvLayer::forward(Matrix const &in) {
             }
         }
     }
-    f_res_t += t.elapsed();
     return outputNeural;
 
 }
 
 Matrix ConvLayer::backward(Matrix const &gradientOut) {
-    Timer t;
     Index nbPos = shapeOut.get_height() * shapeOut.get_width();
     assert(gradientOut.get_column() == nOutput() && gradientOut.get_row() * nbPos == im2col.get_row() && "Erreur : Dimension gradientOut");
 
-    t.reset();
     Matrix gradRes(nbPos*gradientOut.get_row(), nKer);
     #pragma omp parallel for schedule(dynamic,1)
     for (Index i = 0; i < gradientOut.get_row(); i++) {
@@ -123,15 +109,11 @@ Matrix ConvLayer::backward(Matrix const &gradientOut) {
             }
         }
     }
-    b_gradRes_t += t.elapsed();
 
-    t.reset();
+
     gradWeight = gradRes.transpose() * im2col;
-    b_gradWeight_t += t.elapsed();
 
-    t.reset();
     gradBiais = gradRes.sum_row();
-    b_gradBiais_t += t.elapsed();
 
     if (need_grad_input) {
         Matrix gradBlocX = gradRes * weight;
