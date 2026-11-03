@@ -53,7 +53,7 @@ int main() {
 
     auto ptrDense2 = std::make_unique<DenseLayer>(4, 2, gen);
     net.add(std::move(ptrDense2));
-    net.add(std::make_unique<Sigmoide>(2));
+    net.add(std::make_unique<Sigmoid>(2));
 
     const Index EPOCH = 5000;
 

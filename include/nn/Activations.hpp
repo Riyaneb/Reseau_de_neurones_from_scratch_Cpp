@@ -7,16 +7,24 @@
 class ReLU : public ActivationLayer {
 public:
     ReLU(Index nb) : ActivationLayer(nb) {}
+    Matrix forward(Matrix const &in) override;
+    Matrix backward(Matrix const &gradientOut) override;
     std::unique_ptr<Layer> clone() const override;
+    std::string layer_name() const override {
+        return "ReLU";
+    }
 protected:
     Scalar apply(Scalar value) const override;
     Scalar derivate_fn(Scalar const &value) const override;
 };
 
-class Sigmoide : public ActivationLayer {
+class Sigmoid : public ActivationLayer {
 public:
-    Sigmoide(Index nb) : ActivationLayer(nb) {}
+    Sigmoid(Index nb) : ActivationLayer(nb) {}
     std::unique_ptr<Layer> clone() const override;
+    inline std::string layer_name() const override {
+        return "Sigmoid";
+    }
 protected:
     Scalar apply(Scalar value) const override;
     Scalar derivate_fn(Scalar const &value) const override;
@@ -26,6 +34,9 @@ class Tanh : public ActivationLayer {
 public:
     Tanh(Index nb) : ActivationLayer(nb) {}
     std::unique_ptr<Layer> clone() const override;
+    inline std::string layer_name() const override {
+        return "Tanh";
+    }
 protected:
     Scalar apply(Scalar value) const override;
     Scalar derivate_fn(Scalar const &value) const override;
@@ -35,6 +46,9 @@ class Identity : public ActivationLayer {
 public:
     Identity(Index nb) : ActivationLayer(nb) {}
     std::unique_ptr<Layer> clone() const override;
+    inline std::string layer_name() const override {
+        return "Identity";
+    }
 protected:
     Scalar apply(Scalar value) const override;
     Scalar derivate_fn(Scalar const &value) const override;

@@ -5,6 +5,8 @@
 
 #include "math/Types.hpp"
 #include <vector>
+#define MIN_SIZE_OMP 32768
+
 
 class Matrix {
 public:

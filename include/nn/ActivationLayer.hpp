@@ -12,6 +12,7 @@ public:
     Matrix backward(Matrix const &gradientOut) override;
     Index nInput() const override;
     Index nOutput() const override;
+    virtual std::string layer_name() const = 0;
 protected:
     Index nbInput;
     Matrix input;

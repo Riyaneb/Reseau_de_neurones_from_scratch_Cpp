@@ -15,9 +15,22 @@ public:
     PairParameters get_parameters();
     void set_gradients_zero();
     Network clone() const;
+    inline std::vector<std::string> &get_names() {
+        return layers_name;
+    }
+    inline std::vector<double> &get_forward_times() {
+        return forward_times;
+    }
+    inline std::vector<double> &get_backward_times() {
+        return backward_times;
+    }
+
 
 private:
     std::vector<std::unique_ptr<Layer>> layers;
+    std::vector<std::string> layers_name;
+    std::vector<double> forward_times;
+    std::vector<double> backward_times;
 };
 
 #endif //RESEAU_DE_NEURONES_FROM_SCRATCH_C_NETWORK_HPP

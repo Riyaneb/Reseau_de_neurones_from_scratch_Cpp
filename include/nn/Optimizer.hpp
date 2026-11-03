@@ -6,6 +6,7 @@ class Optimizer {
 public :
     virtual ~Optimizer() {}
     virtual void update_parameters(PairParameters &parameters) = 0;
+    virtual std::string optimiser_name() const = 0;
 };
 
 

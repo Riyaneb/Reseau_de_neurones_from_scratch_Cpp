@@ -11,6 +11,9 @@ public:
     Index nInput() const override;
     Index nOutput() const override;
     std::unique_ptr<Layer> clone() const override;
+    inline std::string layer_name() const override {
+        return "Flatten";
+    }
 
 private:
     Shape shape;

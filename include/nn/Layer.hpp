@@ -3,6 +3,7 @@
 
 #include "math/Matrix.hpp"
 #include <memory>
+#include <string>
 
 class Layer {
 public:
@@ -11,6 +12,7 @@ public:
     virtual ~Layer() = default;
     virtual Index nInput() const = 0;
     virtual Index nOutput() const = 0;
+    virtual std::string layer_name() const = 0;
     virtual PairParameters get_parameters();
     virtual void set_gradients_zero();
     virtual std::unique_ptr<Layer> clone() const = 0;

@@ -15,6 +15,9 @@ public:
     PairParameters get_parameters() override;
     void set_gradients_zero() override;
     std::unique_ptr<Layer> clone() const override;
+    inline std::string layer_name() const override {
+        return "Convolution";
+    }
 private:
     Shape shapeIn;
     Shape shapeOut;

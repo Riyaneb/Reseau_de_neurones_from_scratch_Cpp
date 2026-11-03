@@ -118,11 +118,11 @@ void test_activations(TestRunner &runner) {
 
     runner.section("Test Sigmoide");
 
-    Sigmoide sigmoide(3);
+    Sigmoid sigmoide(3);
     Matrix input_zero(1, 1);
     input_zero.get_value(0, 0) = 0;
 
-    Sigmoide sigmoide_1(1);
+    Sigmoid sigmoide_1(1);
     Matrix out_sig_zero = sigmoide_1.forward(input_zero);
     runner.check_values(0.5, out_sig_zero.get_value(0, 0), "Point remarquable Sigmoide en 0");
 
@@ -270,7 +270,7 @@ void test_network(TestRunner &runner) {
     net.add(std::make_unique<DenseLayer>(2, 4, gen));
     net.add(std::make_unique<Tanh>(4));
     net.add(std::make_unique<DenseLayer>(4, 1, gen));
-    net.add(std::make_unique<Sigmoide>(1));
+    net.add(std::make_unique<Sigmoid>(1));
 
     runner.section("Test des dimensions de sortie 4x2");
 
@@ -346,7 +346,7 @@ void test_network(TestRunner &runner) {
     dl2_man.set_weight(weight2);
     dl2_man.set_biais(biais2);
 
-    Sigmoide sig_man(1);
+    Sigmoid sig_man(1);
 
     Matrix out_man_1 = dl1_man.forward(input_coherence);
     Matrix out_man_2 = tanh_man.forward(out_man_1);
@@ -369,7 +369,7 @@ void test_network(TestRunner &runner) {
     ptr_dl2->set_biais(biais2);
     net_coh.add(std::move(ptr_dl2));
 
-    net_coh.add(std::make_unique<Sigmoide>(1));
+    net_coh.add(std::make_unique<Sigmoid>(1));
 
     Matrix out_net = net_coh.forward(input_coherence);
 

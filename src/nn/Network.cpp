@@ -1,21 +1,28 @@
 #include "nn/Network.hpp"
 
+#include "utils/Timer.hpp"
+
 
 void Network::add(std::unique_ptr<Layer> layer) {
     assert(layer != nullptr && "Erreur : Le pointeur est nul");
     if (!layers.empty()) {
         assert(layer->nInput() == layers.back()->nOutput() && "Erreur : Le nombre d'entrée de la nouvelle couche ne correspond pas au nombre de sortie de la dernière couche");
     }
+    layers_name.push_back(layer->layer_name());
     layers.push_back(std::move(layer));
 }
 
 Matrix Network::forward(Matrix const &X) {
     assert(!layers.empty() && "Erreur : Le réseau est vide");
     assert(X.get_column() == layers[0]->nInput() && "Erreur : Dimension de l'entrée incorrecte pour ce réseau");
+    Timer t;
+    forward_times.clear();
     Matrix result = X;
     std::vector<std::unique_ptr<Layer>>::iterator it;
     for (it = layers.begin(); it != layers.end(); ++it) {
+        t.reset();
         result = (*it)->forward(result);
+        forward_times.push_back(t.elapsed());
     }
     return result;
 }
@@ -23,10 +30,14 @@ Matrix Network::forward(Matrix const &X) {
 Matrix Network::backward(Matrix const &gradLoss) {
     assert(!layers.empty() && "Erreur : Le réseau est vide");
     assert(layers.back()->nOutput() == gradLoss.get_column() && "Erreur : Dimension de sortie incorrecte pour ce réseau");
+    Timer t;
+    backward_times.clear();
     Matrix result = gradLoss;
     std::vector<std::unique_ptr<Layer>>::reverse_iterator it;
     for (it = layers.rbegin(); it != layers.rend(); ++it) {
+        t.reset();
         result = (*it)->backward(result);
+        backward_times.push_back(t.elapsed());
     }
     return result;
 }

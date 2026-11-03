@@ -12,6 +12,9 @@ public:
     Index nInput() const override;
     Index nOutput() const override;
     std::unique_ptr<Layer> clone() const override;
+    inline std::string layer_name() const override {
+        return "MaxPooling";
+    }
 
     static std::pair<Scalar, Index> max(std::vector<std::pair<Scalar, Index>> const &tab);
 private:
