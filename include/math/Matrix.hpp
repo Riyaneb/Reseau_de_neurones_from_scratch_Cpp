@@ -10,7 +10,9 @@
 
 class Matrix {
 public:
-    Matrix(Index l,Index c,Scalar init_value=0): row(l), column(c), mat(check_size(l,c), init_value) {}
+    Matrix(Index l,Index c,Scalar init_value=0): row(l), column(c), mat(check_size(l,c), init_value), in_gpu(false), gpu_ptr(nullptr) {}
+    ~Matrix();
+
     inline Index get_row() const {
         return row;
     }
@@ -19,19 +21,26 @@ public:
         return column;
     }
 
-    inline Index get_size() const {
+    Index get_size() const {
         return row*column;
     }
 
-    inline const Scalar &get_value(Index l, Index c) const {
+    const Scalar &get_value(Index l, Index c) const {
         assert(l>=0 && l < row && c>=0 && c < column && "Erreur : Index incorrect");
         return mat[size_mat(l, c)];
     }
 
-    inline Scalar &get_value(Index l, Index c) {
+    Scalar &get_value(Index l, Index c) {
         assert(l>=0 && l < row && c>=0 && c < column && "Erreur : Index incorrect");
         return mat[size_mat(l, c)];
     }
+
+    bool get_in_gpu() const {
+        return in_gpu;
+    }
+
+    void to_gpu();
+    void to_cpu();
 
     Scalar *get_ptr_matrix();
     Scalar const *get_ptr_matrix() const;
@@ -62,6 +71,8 @@ private:
     Index row;
     Index column;
     std::vector<Scalar> mat;
+    bool in_gpu;
+    Scalar* gpu_ptr;
     inline Index size_mat(Index l, Index c) const {
         return l * column + c;
     }

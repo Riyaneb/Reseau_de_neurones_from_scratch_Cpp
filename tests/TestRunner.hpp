@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <cmath>
+#include <sstream>
 #include <string>
 
 #include "math/Types.hpp"
@@ -64,6 +65,56 @@ private:
     int nb_succes;
 };
 
+inline void comparaison_matrix(TestRunner &runner, Matrix const &result, Matrix const &expected, std::string const &nom) {
+    std::ostringstream nCo;
+    nCo << nom << " : Test dimension colonne";
+    std::ostringstream nRow;
+    nRow << nom << " : Test dimension ligne";
+    runner.check_values(expected.get_row(), result.get_row(), nRow.str());
+    runner.check_values(expected.get_column(),result.get_column(),nCo.str());
+    if (expected.get_row() != result.get_row() || expected.get_column() != result.get_column()) {
+        return;
+    }
 
+    std::ostringstream matExpectedStr;
+    std::ostringstream matResultStr;
+
+    for (Index i = 0; i < expected.get_row(); i++) {
+        for (Index j = 0; j < expected.get_column(); j++) {
+            std::ostringstream casee;
+            casee << nom << " cellule (" << i << "," << j << ")";
+            runner.check_values(expected.get_value(i,j), result.get_value(i,j), casee.str());
+            matExpectedStr << expected.get_value(i,j) << " ";
+            matResultStr<< result.get_value(i,j) << " ";
+        }
+        matExpectedStr << std::endl;
+        matResultStr << std::endl;
+    }
+
+    std::cout << "Matrice attendu :\n\n" << matExpectedStr.str() << "\n\nMatrice obtenu :\n\n" << matResultStr.str() << std::endl;
+}
+
+inline void comparaison_matrix_big(TestRunner &runner, Matrix const &result, Matrix const &expected, std::string const &nom) {
+    std::ostringstream nCo;
+    nCo << nom << " : Test dimension colonne";
+    std::ostringstream nRow;
+    nRow << nom << " : Test dimension ligne";
+    runner.check_values(expected.get_row(), result.get_row(), nRow.str());
+    runner.check_values(expected.get_column(),result.get_column(),nCo.str());
+    if (expected.get_row() != result.get_row() || expected.get_column() != result.get_column()) {
+        return;
+    }
+
+    Index nb_error = 0;
+    for (Index i = 0; i < expected.get_row(); i++) {
+        for (Index j = 0; j < expected.get_column(); j++) {
+            if (result.get_value(i,j) != expected.get_value(i,j)) {
+                ++nb_error;
+                std::cout << "[ERROR] case(" << i << "," << j << ") : Attendu " << expected.get_value(i,j) << ", Obtenu " << result.get_value(i,j) << std::endl;
+            }
+        }
+    }
+    runner.check_values(0, nb_error, nom);
+}
 
 #endif //RESEAU_DE_NEURONES_FROM_SCRATCH_C_TESTRUNNER_HPP

@@ -60,6 +60,7 @@ set(TEST
         tests/test_snake_env.cpp
         tests/test_random.cpp
         tests/test_corridor_env.cpp
+        tests/test_gpu_matrix.cpp
 )
 
 include(FetchContent)

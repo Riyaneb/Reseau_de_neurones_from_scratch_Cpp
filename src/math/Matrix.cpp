@@ -268,3 +268,44 @@ Index Matrix::max_index_value_row(Index r) const {
 Scalar Matrix::max_value_row(Index r) const {
     return this->get_value(r,max_index_value_row(r));
 }
+
+
+void Matrix::to_gpu() {
+    #ifdef USE_CUDA
+    if (!in_gpu) {
+        const size_t octets = row * column * sizeof(Scalar);
+        CUDA_CHECK(cudaMalloc(&gpu_ptr,octets));
+        CUDA_CHECK(cudaMemcpy(gpu_ptr,mat.data(),octets,cudaMemcpyHostToDevice));
+        mat.clear();
+        mat.shrink_to_fit();
+        in_gpu = true;
+    }
+    #else
+    std::cerr << "Erreur : CUDA non disponible" << std::endl;
+    exit(EXIT_FAILURE);
+    #endif
+}
+
+void Matrix::to_cpu() {
+    #ifdef USE_CUDA
+    if (in_gpu) {
+        const size_t octets = row * column * sizeof(Scalar);
+        mat.resize(row*column,0);
+        CUDA_CHECK(cudaMemcpy(mat.data(), gpu_ptr,octets,cudaMemcpyDeviceToHost));
+        CUDA_CHECK(cudaFree(gpu_ptr));
+        gpu_ptr = nullptr;
+        in_gpu = false;
+    }
+    #else
+    std::cerr << "Erreur : CUDA non disponible" << std::endl;
+    exit(EXIT_FAILURE);
+    #endif
+}
+
+Matrix::~Matrix() {
+#ifdef USE_CUDA
+    if (gpu_ptr != nullptr) {
+        CUDA_CHECK(cudaFree(gpu_ptr));
+    }
+#endif
+}

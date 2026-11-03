@@ -2,34 +2,7 @@
 #include "TestRunner.hpp"
 #include <sstream>
 
-void comparaison_matrix(TestRunner &runner, Matrix const &result, Matrix const &expected, std::string const &nom) {
-    std::ostringstream nCo;
-    nCo << nom << " : Test dimension colonne";
-    std::ostringstream nRow;
-    nRow << nom << " : Test dimension ligne";
-    runner.check_values(expected.get_row(), result.get_row(), nRow.str());
-    runner.check_values(expected.get_column(),result.get_column(),nCo.str());
-    if (expected.get_row() != result.get_row() || expected.get_column() != result.get_column()) {
-        return;
-    }
-
-    std::ostringstream matExpectedStr;
-    std::ostringstream matResultStr;
-
-    for (Index i = 0; i < expected.get_row(); i++) {
-        for (Index j = 0; j < expected.get_column(); j++) {
-            std::ostringstream casee;
-            casee << nom << " cellule (" << i << "," << j << ")";
-            runner.check_values(expected.get_value(i,j), result.get_value(i,j), casee.str());
-            matExpectedStr << expected.get_value(i,j) << " ";
-            matResultStr<< result.get_value(i,j) << " ";
-        }
-        matExpectedStr << std::endl;
-        matResultStr << std::endl;
-    }
-
-    std::cout << "Matrice attendu :\n\n" << matExpectedStr.str() << "\n\nMatrice obtenu :\n\n" << matResultStr.str() << std::endl;
-}
+void comparaison_matrix(TestRunner &runner, Matrix const &result, Matrix const &expected, std::string const &nom);
 
 void test_indexation(TestRunner &runner, Matrix &matrix) {
     std::ostringstream MatExpected;
