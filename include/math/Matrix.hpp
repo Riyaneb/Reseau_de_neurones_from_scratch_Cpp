@@ -11,6 +11,7 @@
 class Matrix {
 public:
     Matrix(Index l,Index c,Scalar init_value=0): row(l), column(c), mat(check_size(l,c), init_value), in_gpu(false), gpu_ptr(nullptr) {}
+    Matrix(Matrix const &m);
     ~Matrix();
 
     inline Index get_row() const {
@@ -49,6 +50,7 @@ public:
     Matrix& operator-=(Matrix const &m);
     Matrix& hadamard(Matrix const &m);
     Matrix& operator*=(Scalar const &a);
+    Matrix& operator=(Matrix const &m);
 
     static Matrix multiplyMatrixCPU(Matrix const &m1, Matrix const &m2);
     static Matrix multiplyMatrixGPU(Matrix const &m1, Matrix const &m2);

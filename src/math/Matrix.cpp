@@ -9,6 +9,19 @@
 #endif
 #define MIN_SIZE 100000000
 
+Matrix::Matrix(Matrix const &m) : row(m.row), column(m.column), mat(m.mat), in_gpu(m.in_gpu), gpu_ptr(nullptr) {
+    if (in_gpu) {
+        #ifdef USE_CUDA
+            size_t octets = static_cast<size_t>(row)*column*sizeof(Scalar);
+            CUDA_CHECK(cudaMalloc(&gpu_ptr, octets));
+            CUDA_CHECK(cudaMemcpy(gpu_ptr, m.gpu_ptr, octets, cudaMemcpyDeviceToDevice));
+        #else
+            std::cerr << "Erreur : CUDA non disponible" << std::endl;
+            exit(EXIT_FAILURE);
+        #endif
+    }
+}
+
 Index Matrix::check_size(Index l, Index c) {
     assert(l > 0 && c >0 && "Le nombre de ligne ou de colonne de la matrice est négatif ou nulle");
     return l*c;
@@ -85,6 +98,39 @@ Matrix operator*(Scalar a,Matrix const &m) {
     Matrix result = Matrix(m);
     result *= a;
     return result;
+}
+
+Matrix &Matrix::operator=(Matrix const &m) {
+    if (this == &m) {
+        return *this;
+    }
+    row = m.row;
+    column = m.column;
+    if (!m.in_gpu) {
+        #ifdef USE_CUDA
+            if (gpu_ptr != nullptr) {
+                CUDA_CHECK(cudaFree(gpu_ptr));
+                gpu_ptr = nullptr;
+            }
+        #endif
+        mat = m.mat;
+        in_gpu = false;
+    }
+    else {
+        #ifdef USE_CUDA
+            mat.clear();
+            mat.shrink_to_fit();
+            size_t octets = static_cast<size_t>(row)*column*sizeof(Scalar);
+            CUDA_CHECK(cudaFree(gpu_ptr));
+            CUDA_CHECK(cudaMalloc(&gpu_ptr, octets));
+            CUDA_CHECK(cudaMemcpy(gpu_ptr, m.gpu_ptr, octets, cudaMemcpyDeviceToDevice));
+            in_gpu = true;
+        #else
+                std::cerr << "Erreur : CUDA non disponible" << std::endl;
+                exit(EXIT_FAILURE);
+        #endif
+    }
+    return *this;
 }
 
 bool Matrix::isSquare() const {
@@ -273,7 +319,7 @@ Scalar Matrix::max_value_row(Index r) const {
 void Matrix::to_gpu() {
     #ifdef USE_CUDA
     if (!in_gpu) {
-        const size_t octets = row * column * sizeof(Scalar);
+        const size_t octets = static_cast<size_t>(row) * column * sizeof(Scalar);
         CUDA_CHECK(cudaMalloc(&gpu_ptr,octets));
         CUDA_CHECK(cudaMemcpy(gpu_ptr,mat.data(),octets,cudaMemcpyHostToDevice));
         mat.clear();
@@ -289,7 +335,7 @@ void Matrix::to_gpu() {
 void Matrix::to_cpu() {
     #ifdef USE_CUDA
     if (in_gpu) {
-        const size_t octets = row * column * sizeof(Scalar);
+        const size_t octets = static_cast<size_t>(row) * column * sizeof(Scalar);
         mat.resize(row*column,0);
         CUDA_CHECK(cudaMemcpy(mat.data(), gpu_ptr,octets,cudaMemcpyDeviceToHost));
         CUDA_CHECK(cudaFree(gpu_ptr));
@@ -309,3 +355,4 @@ Matrix::~Matrix() {
     }
 #endif
 }
+

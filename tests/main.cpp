@@ -3,6 +3,12 @@
 #include "math/Random.hpp"
 #include <sstream>
 
+#include <iostream>
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 void test_indexation(TestRunner &runner, Matrix &matrix);
 void test_matrice(TestRunner& runner);
 
@@ -29,6 +35,11 @@ void test_snake_env(TestRunner &runner);
 void test_general_matrix_gpu(TestRunner &runner);
 
 int main() {
+    #ifdef _WIN32
+        SetConsoleOutputCP(CP_UTF8);
+        SetConsoleCP(CP_UTF8);
+    #endif
+
     TestRunner runner;
     test_matrice(runner);
     test_random(runner);

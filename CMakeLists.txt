@@ -156,6 +156,7 @@ set_target_properties(train_cnn PROPERTIES CXX_EXTENSIONS OFF)
 
 if(MSVC)
     target_compile_options(libNeurone PRIVATE $<$<COMPILE_LANGUAGE:CXX>:/W4 /arch:AVX2>)
+    add_compile_options(/utf-8)
 else()
     target_compile_options(libNeurone PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-Wall -Wextra -Wpedantic -mavx2 -mfma>)
 endif()

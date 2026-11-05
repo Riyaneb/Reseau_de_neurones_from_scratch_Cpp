@@ -38,10 +38,14 @@ void test_matrix_to_gpu(TestRunner &runner) {
     C.to_cpu();
     D.to_cpu();
 
+    runner.section("Test envoie vers cpu");
+
     runner.check_values(false, A.get_in_gpu(), "A est sur CPU");
     runner.check_values(false, B.get_in_gpu(), "B est sur CPU");
     runner.check_values(false, C.get_in_gpu(), "C est sur CPU");
     runner.check_values(false, D.get_in_gpu(), "D est sur CPU");
+
+    runner.section("Test intégrité des matrices");
 
     comparaison_matrix_big(runner,A,c_A,"Verification de l'intégrité de A");
     comparaison_matrix_big(runner,B,c_B,"Vérification de l'intégrité de B");
@@ -50,6 +54,41 @@ void test_matrix_to_gpu(TestRunner &runner) {
 
 }
 
+void test_copy_matrix(TestRunner &runner) {
+    Matrix A(3,4);
+    Random gen;
+    init_weight_Glorot(A,gen);
+    Matrix c_A = A;
+
+    runner.section("Test copie sur une nouvelle matrice");
+    A.to_gpu();
+    Matrix B = A;
+    B.to_cpu();
+    comparaison_matrix(runner, B,c_A,"Vérification B=A avec B nouveau");
+
+
+    runner.section("Indépendance des matrices");
+    B.get_value(0,0) = 7;
+    B.to_gpu();
+    A.to_cpu();
+    comparaison_matrix(runner, A,c_A,"Indépendance de A et de B");
+
+
+    runner.section("Copie d'une matrice dans une autre déjà existante");
+    Matrix C(1,1);
+    C.to_gpu();
+    A.to_gpu();
+    C = A;
+    C.to_cpu();
+    comparaison_matrix(runner, C,c_A,"Vérification C=A avec C déjà existante");
+
+    runner.section("Copie d'une matrice dans elle meme");
+    A = A;
+    A.to_cpu();
+    comparaison_matrix(runner, A, c_A, "A=A");
+}
+
 void test_general_matrix_gpu(TestRunner &runner) {
     test_matrix_to_gpu(runner);
+    test_copy_matrix(runner);
 }
