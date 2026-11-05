@@ -29,11 +29,13 @@ public:
     }
 
     const Scalar &get_value(Index l, Index c) const {
+        assert(!in_gpu && "Erreur : La matrice n'est pas sur CPU");
         assert(l>=0 && l < row && c>=0 && c < column && "Erreur : Index incorrect");
         return mat[size_mat(l, c)];
     }
 
     Scalar &get_value(Index l, Index c) {
+        assert(!in_gpu && "Erreur : La matrice n'est pas sur CPU");
         assert(l>=0 && l < row && c>=0 && c < column && "Erreur : Index incorrect");
         return mat[size_mat(l, c)];
     }

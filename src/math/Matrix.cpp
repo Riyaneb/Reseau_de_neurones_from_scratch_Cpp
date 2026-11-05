@@ -6,6 +6,7 @@
 
 #ifdef USE_CUDA
     #include "gpu/Gpu_calcul_matrix.hpp"
+    #include "gpu/Memory_manage_matrix.hpp"
 #endif
 #define MIN_SIZE 100000000
 
@@ -32,10 +33,12 @@ Index Matrix::check_size(Index l, Index c) {
     return l*c;
 }
 Scalar* Matrix::get_ptr_matrix() {
+    assert(!in_gpu && "Erreur : La matrice n'est pas sur CPU");
     return mat.data();
 }
 
 Scalar const *Matrix::get_ptr_matrix() const {
+    assert(!in_gpu && "Erreur : La matrice n'est pas sur CPU");
     return mat.data();
 }
 
@@ -327,6 +330,7 @@ Matrix Matrix::matIdentity(Index n) {
 }
 
 void Matrix::render() {
+    assert(!in_gpu && "Erreur : La matrice n'est pas sur CPU");
     for (int i = 0; i < row; i++) {
         for (int j = 0; j < column; j++) {
             std::cout << this->get_value(i,j) << " ";
@@ -336,6 +340,7 @@ void Matrix::render() {
 }
 
 Index Matrix::max_index_value_row(Index r) const {
+    assert(!in_gpu && "Erreur : La matrice n'est pas sur CPU");
     assert(r >= 0 && r < row && "Erreur : La ligne est invalide");
     Index max_index = 0;
     Scalar max_value = this->get_value(r,0);

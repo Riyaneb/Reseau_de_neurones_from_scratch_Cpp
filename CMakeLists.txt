@@ -49,6 +49,8 @@ set(CORE_SOURCE
         src/utils/DatasetImage.cpp
         src/utils/PredictionCnn.cpp
         include/utils/PredictionCnn.hpp
+        include/gpu/memory_manage_matrix.hpp
+        src/gpu/Memory_manage_matrix.cpp
 )
 
 set(TEST
@@ -92,6 +94,10 @@ if(CMAKE_CUDA_COMPILER)
     target_link_libraries(libNeurone PUBLIC CUDA::cublas)
 endif()
 
+add_executable(test apps/test.cpp)
+target_link_libraries(test PRIVATE libNeurone)
+target_compile_features(test PRIVATE cxx_std_17)
+set_target_properties(test PROPERTIES CXX_EXTENSIONS OFF)
 
 add_executable(play_snake apps/play_snake.cpp)
 target_link_libraries(play_snake PRIVATE libNeurone)
