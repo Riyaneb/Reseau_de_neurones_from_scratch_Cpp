@@ -14,7 +14,7 @@ Matrix::Matrix(Matrix const &m) : row(m.row), column(m.column), mat(m.mat), in_g
     if (in_gpu) {
         #ifdef USE_CUDA
             size_t octets = static_cast<size_t>(row)*column*sizeof(Scalar);
-            CUDA_CHECK(cudaMalloc(&gpu_ptr, octets));
+            gpu_ptr = gpu_alloc(get_size());
             CUDA_CHECK(cudaMemcpy(gpu_ptr, m.gpu_ptr, octets, cudaMemcpyDeviceToDevice));
         #else
             std::cerr << "Erreur : CUDA non disponible" << std::endl;
@@ -117,7 +117,7 @@ Matrix &Matrix::operator=(Matrix const &m) {
     if (!m.in_gpu) {
         #ifdef USE_CUDA
             if (gpu_ptr != nullptr) {
-                CUDA_CHECK(cudaFree(gpu_ptr));
+                gpu_free(gpu_ptr);
                 gpu_ptr = nullptr;
             }
         #endif
@@ -129,8 +129,8 @@ Matrix &Matrix::operator=(Matrix const &m) {
             mat.clear();
             mat.shrink_to_fit();
             size_t octets = static_cast<size_t>(row)*column*sizeof(Scalar);
-            CUDA_CHECK(cudaFree(gpu_ptr));
-            CUDA_CHECK(cudaMalloc(&gpu_ptr, octets));
+            gpu_free(gpu_ptr);
+            gpu_ptr = gpu_alloc(get_size());
             CUDA_CHECK(cudaMemcpy(gpu_ptr, m.gpu_ptr, octets, cudaMemcpyDeviceToDevice));
             in_gpu = true;
         #else
@@ -150,7 +150,7 @@ Matrix &Matrix::operator=(Matrix &&m) noexcept {
     if (!m.in_gpu) {
         #ifdef USE_CUDA
         if (gpu_ptr != nullptr) {
-            CUDA_CHECK(cudaFree(gpu_ptr));
+            gpu_free(gpu_ptr);
             gpu_ptr = nullptr;
         }
         #endif
@@ -161,7 +161,7 @@ Matrix &Matrix::operator=(Matrix &&m) noexcept {
     #ifdef USE_CUDA
         mat.clear();
         mat.shrink_to_fit();
-        CUDA_CHECK(cudaFree(gpu_ptr));
+        gpu_free(gpu_ptr);
         gpu_ptr = m.get_gpu_ptr();
         m.gpu_ptr = nullptr;
         in_gpu = true;
@@ -241,7 +241,7 @@ Matrix Matrix::multiplyMatrixCPU(Matrix const &m1, Matrix const &m2) {
 
     long long chunk = 16384 / (m1.get_column() * m2.get_column());
     long long chunk2 = 16384 / (m1.get_row() * m2.get_column());
-    
+
     if (chunk < 1) {
         chunk = 1;
     }
@@ -363,7 +363,7 @@ void Matrix::to_gpu() {
     #ifdef USE_CUDA
     if (!in_gpu) {
         const size_t octets = static_cast<size_t>(row) * column * sizeof(Scalar);
-        CUDA_CHECK(cudaMalloc(&gpu_ptr,octets));
+        gpu_ptr = gpu_alloc(get_size());
         CUDA_CHECK(cudaMemcpy(gpu_ptr,mat.data(),octets,cudaMemcpyHostToDevice));
         mat.clear();
         mat.shrink_to_fit();
@@ -381,7 +381,7 @@ void Matrix::to_cpu() {
         const size_t octets = static_cast<size_t>(row) * column * sizeof(Scalar);
         mat.resize(row*column,0);
         CUDA_CHECK(cudaMemcpy(mat.data(), gpu_ptr,octets,cudaMemcpyDeviceToHost));
-        CUDA_CHECK(cudaFree(gpu_ptr));
+        gpu_free(gpu_ptr);
         gpu_ptr = nullptr;
         in_gpu = false;
     }
@@ -394,8 +394,7 @@ void Matrix::to_cpu() {
 Matrix::~Matrix() {
 #ifdef USE_CUDA
     if (gpu_ptr != nullptr) {
-        CUDA_CHECK(cudaFree(gpu_ptr));
+        gpu_free(gpu_ptr);
     }
 #endif
 }
-
