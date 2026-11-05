@@ -22,6 +22,11 @@ Matrix::Matrix(Matrix const &m) : row(m.row), column(m.column), mat(m.mat), in_g
     }
 }
 
+Matrix::Matrix(Matrix &&m) noexcept : row(m.row), column(m.column), mat(std::move(m.mat)), in_gpu(m.in_gpu), gpu_ptr(m.get_gpu_ptr()) {
+    m.gpu_ptr = nullptr;
+    m.in_gpu = false;
+}
+
 Index Matrix::check_size(Index l, Index c) {
     assert(l > 0 && c >0 && "Le nombre de ligne ou de colonne de la matrice est négatif ou nulle");
     return l*c;
@@ -129,6 +134,39 @@ Matrix &Matrix::operator=(Matrix const &m) {
                 std::cerr << "Erreur : CUDA non disponible" << std::endl;
                 exit(EXIT_FAILURE);
         #endif
+    }
+    return *this;
+}
+
+Matrix &Matrix::operator=(Matrix &&m) noexcept {
+    if (this == &m) {
+        return *this;
+    }
+    row = m.row;
+    column = m.column;
+    if (!m.in_gpu) {
+        #ifdef USE_CUDA
+        if (gpu_ptr != nullptr) {
+            CUDA_CHECK(cudaFree(gpu_ptr));
+            gpu_ptr = nullptr;
+        }
+        #endif
+        mat = std::move(m.mat);
+        in_gpu = false;
+    }
+    else {
+    #ifdef USE_CUDA
+        mat.clear();
+        mat.shrink_to_fit();
+        CUDA_CHECK(cudaFree(gpu_ptr));
+        gpu_ptr = m.get_gpu_ptr();
+        m.gpu_ptr = nullptr;
+        in_gpu = true;
+        m.in_gpu = false;
+    #else
+        std::cerr << "Erreur : CUDA non disponible" << std::endl;
+        exit(EXIT_FAILURE);
+    #endif
     }
     return *this;
 }

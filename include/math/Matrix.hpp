@@ -5,6 +5,7 @@
 
 #include "math/Types.hpp"
 #include <vector>
+#include <utility>
 #define MIN_SIZE_OMP 32768
 
 
@@ -12,6 +13,7 @@ class Matrix {
 public:
     Matrix(Index l,Index c,Scalar init_value=0): row(l), column(c), mat(check_size(l,c), init_value), in_gpu(false), gpu_ptr(nullptr) {}
     Matrix(Matrix const &m);
+    Matrix(Matrix &&m) noexcept;
     ~Matrix();
 
     inline Index get_row() const {
@@ -40,6 +42,10 @@ public:
         return in_gpu;
     }
 
+    Scalar* get_gpu_ptr() {
+        return gpu_ptr;
+    }
+
     void to_gpu();
     void to_cpu();
 
@@ -51,6 +57,7 @@ public:
     Matrix& hadamard(Matrix const &m);
     Matrix& operator*=(Scalar const &a);
     Matrix& operator=(Matrix const &m);
+    Matrix& operator=(Matrix &&m) noexcept;
 
     static Matrix multiplyMatrixCPU(Matrix const &m1, Matrix const &m2);
     static Matrix multiplyMatrixGPU(Matrix const &m1, Matrix const &m2);

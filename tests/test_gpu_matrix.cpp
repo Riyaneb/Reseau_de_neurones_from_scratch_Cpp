@@ -86,6 +86,30 @@ void test_copy_matrix(TestRunner &runner) {
     A = A;
     A.to_cpu();
     comparaison_matrix(runner, A, c_A, "A=A");
+
+
+    runner.section("Vérification d'une matrice sur gpu déplacement dans une matrice nouvelle");
+    A.to_gpu();
+    Scalar* ptr_A = A.get_gpu_ptr();
+    Matrix E = std::move(A);
+    Scalar* ptr_E = E.get_gpu_ptr();
+
+    runner.check_values(ptr_A, ptr_E, "Vérification de la récuperation de E du pointeur de A");
+    bool answer = A.get_gpu_ptr() == nullptr;
+    runner.check_values(true,answer,"Vérificationd e la dispariton de A dans le gpu");
+    E.to_cpu();
+    comparaison_matrix(runner, E, c_A, "E doit etre identique à A");
+
+    runner.section("Vérification d'une matrice sur gpu déplacement dans une matrice déjà existante");
+    C.to_gpu();
+    E.to_gpu();
+    ptr_E = E.get_gpu_ptr();
+    C = std::move(E);
+    Scalar* ptr_C = C.get_gpu_ptr();
+    runner.check_values(ptr_E, ptr_C, "Vérification de la récuperation de C du pointeur de E");
+    C.to_cpu();
+    comparaison_matrix(runner, C, c_A, "C doit etre identique à E");
+
 }
 
 void test_general_matrix_gpu(TestRunner &runner) {
