@@ -44,10 +44,17 @@ Scalar const *Matrix::get_ptr_matrix() const {
 
 Matrix& Matrix::operator+=(Matrix const &m) {
     assert(m.row == row && m.column == column && "Erreur : Les matrices n'ont pas la même dimension");
-
-    #pragma omp parallel for if(column * row > MIN_SIZE_OMP) schedule(dynamic,8192)
-    for (Index i = 0; i < row*column; ++i) {
-        mat[i] += m.mat[i];
+    assert(in_gpu == m.in_gpu && "Erreur : Les matrices ne sont pas sur le même device");
+    if (in_gpu) {
+        #ifdef USE_CUDA
+        plusEqual_gpu(gpu_ptr, m.gpu_ptr, column, row);
+        #endif
+    }
+    else {
+        #pragma omp parallel for if(column * row > MIN_SIZE_OMP) schedule(dynamic,8192)
+        for (Index i = 0; i < row*column; ++i) {
+            mat[i] += m.mat[i];
+        }
     }
     return *this;
 }
@@ -60,9 +67,17 @@ Matrix operator+(Matrix const &m1, Matrix const &m2) {
 
 Matrix& Matrix::operator-=(Matrix const &m) {
     assert(m.row == row && m.column == column && "Erreur : Les matrices n'ont pas la même dimension");
-    #pragma omp parallel for if(column * row > MIN_SIZE_OMP) schedule(dynamic,8192)
-    for (Index i = 0; i < row*column; ++i) {
-        mat[i] -= m.mat[i];
+    assert(in_gpu == m.in_gpu && "Erreur : Les matrices ne sont pas sur le même device");
+    if (in_gpu) {
+        #ifdef USE_CUDA
+        minusEqual_gpu(gpu_ptr, m.gpu_ptr, column, row);
+        #endif
+    }
+    else {
+        #pragma omp parallel for if(column * row > MIN_SIZE_OMP) schedule(dynamic,8192)
+        for (Index i = 0; i < row*column; ++i) {
+            mat[i] -= m.mat[i];
+        }
     }
     return *this;
 }
@@ -75,9 +90,17 @@ Matrix operator-(Matrix const &m1, Matrix const &m2) {
 
 Matrix& Matrix::hadamard(Matrix const &m) {
     assert(m.row == row && m.column == column && "Erreur : Les matrices n'ont pas la même dimension");
-    #pragma omp parallel for if(column * row > MIN_SIZE_OMP) schedule(dynamic,8192)
-    for (Index i = 0; i < row*column; ++i) {
-        mat[i] *= m.mat[i];
+    assert(in_gpu == m.in_gpu && "Erreur : Les matrices ne sont pas sur le même device");
+    if (in_gpu) {
+        #ifdef USE_CUDA
+        hadamard_gpu(gpu_ptr, m.gpu_ptr, column, row);
+        #endif
+    }
+    else {
+        #pragma omp parallel for if(column * row > MIN_SIZE_OMP) schedule(dynamic,8192)
+        for (Index i = 0; i < row*column; ++i) {
+            mat[i] *= m.mat[i];
+        }
     }
     return *this;
 }
@@ -89,9 +112,16 @@ Matrix hadamard(Matrix const &m1, Matrix const &m2) {
 }
 
 Matrix& Matrix::operator*=(Scalar const &a) {
-    #pragma omp parallel for if(column * row > MIN_SIZE_OMP) schedule(dynamic,8192)
-    for (Index i = 0; i < row*column; ++i) {
-        mat[i] *= a;
+    if (in_gpu) {
+        #ifdef USE_CUDA
+        multScalar_gpu(gpu_ptr, a, column, row);
+        #endif
+    }
+    else {
+        #pragma omp parallel for if(column * row > MIN_SIZE_OMP) schedule(dynamic,8192)
+        for (Index i = 0; i < row*column; ++i) {
+            mat[i] *= a;
+        }
     }
     return *this;
 }
@@ -180,10 +210,18 @@ bool Matrix::isSquare() const {
 
 Matrix Matrix::transpose() const {
     Matrix result(column,row);
-    #pragma omp parallel for if(row*column > MIN_SIZE_OMP) schedule(dynamic,2048)
-    for (Index i = 0; i < row; ++i) {
-        for (Index j = 0; j < column; ++j) {
-            result.get_value(j,i) = this->get_value(i,j);
+    if (in_gpu) {
+        #ifdef USE_CUDA
+        result.to_gpu();
+        transpose_gpu(result.gpu_ptr, gpu_ptr, column, row);
+        #endif
+    }
+    else {
+        #pragma omp parallel for if(row*column > MIN_SIZE_OMP) schedule(dynamic,2048)
+        for (Index i = 0; i < row; ++i) {
+            for (Index j = 0; j < column; ++j) {
+                result.get_value(j,i) = this->get_value(i,j);
+            }
         }
     }
     return result;
@@ -191,10 +229,18 @@ Matrix Matrix::transpose() const {
 
 Matrix &Matrix::broadcast(Matrix const &biais) {
     assert(biais.row == 1 && biais.column == column && "Erreur : Dimension du biais incorrect");
-    #pragma omp parallel for if(row*column > MIN_SIZE_OMP) schedule(dynamic,2048)
-    for (Index i = 0; i < row; ++i) {
-        for (Index j = 0; j < column; ++j) {
-            this->get_value(i,j) += biais.get_value(0,j);
+    assert(in_gpu == m.in_gpu && "Erreur : Les matrices ne sont pas sur le même device");
+    if (in_gpu) {
+        #ifdef USE_CUDA
+        broadcast_gpu(gpu_ptr, biais.gpu_ptr, column, row);
+        #endif
+    }
+    else {
+        #pragma omp parallel for if(row*column > MIN_SIZE_OMP) schedule(dynamic,2048)
+        for (Index i = 0; i < row; ++i) {
+            for (Index j = 0; j < column; ++j) {
+                this->get_value(i,j) += biais.get_value(0,j);
+            }
         }
     }
     return *this;
@@ -207,26 +253,34 @@ Matrix broadcast(Matrix const &m, Matrix const &biais) {
 }
 
 Matrix Matrix::sum_row() const {
-    Matrix result(1,column);
-    long long chunk = 16384 / (column);
-    if (chunk < 1) {
-        chunk = 1;
+    Matrix result(1,column,0);
+    if (in_gpu) {
+        #ifdef USE_CUDA
+        result.to_gpu();
+        sum_row_gpu(result.gpu_ptr, gpu_ptr, column, row);
+        #endif
     }
-    #pragma omp parallel if(row*column > MIN_SIZE_OMP)
-    {
-        Matrix temp(1,column,0);
-
-        #pragma omp for schedule(dynamic,chunk)
-        for (Index i = 0; i < row; ++i) {
-            for (Index j = 0; j < column; ++j) {
-                temp.get_value(0,j) += this->get_value(i,j);
-            }
+    else {
+        long long chunk = 16384 / (column);
+        if (chunk < 1) {
+            chunk = 1;
         }
-
-        #pragma omp critical
+            #pragma omp parallel if(row*column > MIN_SIZE_OMP)
         {
-            for (Index i = 0; i < column; ++i) {
-                result.get_value(0,i) += temp.get_value(0,i);
+            Matrix temp(1,column,0);
+
+            #pragma omp for schedule(dynamic,chunk)
+            for (Index i = 0; i < row; ++i) {
+                for (Index j = 0; j < column; ++j) {
+                    temp.get_value(0,j) += this->get_value(i,j);
+                }
+            }
+
+            #pragma omp critical
+            {
+                for (Index i = 0; i < column; ++i) {
+                    result.get_value(0,i) += temp.get_value(0,i);
+                }
             }
         }
     }

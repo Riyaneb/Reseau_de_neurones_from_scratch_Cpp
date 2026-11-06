@@ -1,7 +1,64 @@
 #include "gpu/GpuCudaCheck.hpp"
+#include "gpu/Memory_manage_matrix.hpp"
 #include "math/Matrix.hpp"
 #include <cassert>
 
+
+__global__ void plusEqual_kernel(Scalar* A, const Scalar* B, size_t size) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < size) {
+        A[i] += B[i];
+    }
+}
+
+__global__ void minusEqual_kernel(Scalar* A, const Scalar* B, size_t size) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < size) {
+        A[i] -= B[i];
+    }
+}
+
+__global__ void multScalar_kernel(Scalar* A, Scalar s, size_t size) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < size) {
+        A[i] *= s;
+    }
+}
+
+__global__ void hadamard_kernel(Scalar* A, const Scalar* B, size_t size) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < size) {
+        A[i] *= B[i];
+    }
+}
+
+__global__ void broadcast_kernel(Scalar* A, const Scalar* B, Index r, Index c) {
+    auto x = blockIdx.x * blockDim.x + threadIdx.x;
+    auto y = blockIdx.y * blockDim.y + threadIdx.y;
+    if (x < c && y < r) {
+        Index i = y*c + x;
+        A[i] += B[x];
+    }
+}
+
+__global__ void transpose_kernel(Scalar* A, const Scalar* B, Index r, Index c) {
+    auto x = blockIdx.x * blockDim.x + threadIdx.x;
+    auto y = blockIdx.y * blockDim.y + threadIdx.y;
+    if (x < c && y < r) {
+        Index i = y*c + x;
+        Index j = x*r + y;
+        A[j] = B[i];
+    }
+}
+
+__global__ void sum_row_kernel(Scalar* A, const Scalar* B, Index r, Index c) {
+    auto x = blockIdx.x * blockDim.x + threadIdx.x;
+    auto y = blockIdx.y * blockDim.y + threadIdx.y;
+    if (x < c && y < r) {
+        Index i = y*c + x;
+        atomicAdd(&A[x], B[i]);
+    }
+}
 
 
 
@@ -54,4 +111,59 @@ bool gpu_available() {
         nb_device_verif = true;
     }
    return gpu_avail;
+}
+
+void plusEqual_gpu(Scalar* ptrA, const Scalar* ptrB, Index c, Index r) {
+    Index threads = 256;
+    Index blocs = (c*r + threads - 1) / threads;
+    plusEqual_kernel<<<blocs, threads>>>(ptrA, ptrB, c*r);
+    CUDA_CHECK(cudaGetLastError());
+}
+
+void minusEqual_gpu(Scalar* ptrA, const Scalar* ptrB, Index c, Index r) {
+    Index threads = 256;
+    Index blocs = (c*r + threads - 1) / threads;
+    minusEqual_kernel<<<blocs, threads>>>(ptrA, ptrB, c*r);
+    CUDA_CHECK(cudaGetLastError());
+}
+
+void multScalar_gpu(Scalar* ptrA, const Scalar s, Index c, Index r) {
+    Index threads = 256;
+    Index blocs = (c*r + threads - 1) / threads;
+    multScalar_kernel<<<blocs, threads>>>(ptrA, s, c*r);
+    CUDA_CHECK(cudaGetLastError());
+}
+
+void hadamard_gpu(Scalar* ptrA, const Scalar* ptrB, Index c, Index r) {
+    Index threads = 256;
+    Index blocs = (c*r + threads - 1) / threads;
+    hadamard_kernel<<<blocs, threads>>>(ptrA, ptrB, c*r);
+    CUDA_CHECK(cudaGetLastError());
+}
+
+void broadcast_gpu(Scalar* ptrA, const Scalar* ptrB, Index c, Index r) {
+    Index g = 16;
+    assert((r + g - 1) / g <= 65535 && "Erreur : Le nombre de ligne dépasse la capacité du calcul par gpu");
+    dim3 threads(g,g);
+    dim3 blocs((c + g - 1) / g, (r + g - 1) / g);
+    broadcast_kernel<<<blocs, threads>>>(ptrA, ptrB, r, c);
+    CUDA_CHECK(cudaGetLastError());
+}
+
+void transpose_gpu(Scalar* ptrA, Scalar* ptrB, Index c, Index r) {
+    Index g = 16;
+    assert((r + g - 1) / g <= 65535 && "Erreur : Le nombre de ligne dépasse la capacité du calcul par gpu");
+    dim3 threads(g,g);
+    dim3 blocs((c + g - 1) / g, (r + g - 1) / g);
+    transpose_kernel<<<blocs, threads>>>(ptrA, ptrB, r, c);
+    CUDA_CHECK(cudaGetLastError());
+}
+
+void sum_row_gpu(Scalar* ptrA, Scalar* ptrB, Index c, Index r) {
+    Index g = 16;
+    assert((r + g - 1) / g <= 65535 && "Erreur : Le nombre de ligne dépasse la capacité du calcul par gpu");
+    dim3 threads(g,g);
+    dim3 blocs((c + g - 1) / g, (r + g - 1) / g);
+    sum_row_kernel<<<blocs, threads>>>(ptrA, ptrB, r, c);
+    CUDA_CHECK(cudaGetLastError());
 }

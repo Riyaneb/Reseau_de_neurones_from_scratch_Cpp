@@ -48,6 +48,10 @@ public:
         return gpu_ptr;
     }
 
+    const Scalar* get_gpu_ptr() const {
+        return gpu_ptr;
+    }
+
     void to_gpu();
     void to_cpu();
 
