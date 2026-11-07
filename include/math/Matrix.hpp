@@ -11,7 +11,7 @@
 
 class Matrix {
 public:
-    Matrix(Index l,Index c,Scalar init_value=0): row(l), column(c), mat(check_size(l,c), init_value), in_gpu(false), gpu_ptr(nullptr) {}
+    Matrix(Index l,Index c,Scalar init_value=0, bool gpu=false);
     Matrix(Matrix const &m);
     Matrix(Matrix &&m) noexcept;
     ~Matrix();

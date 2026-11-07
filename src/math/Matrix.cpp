@@ -10,6 +10,22 @@
 #endif
 #define MIN_SIZE 100000000
 
+Matrix::Matrix(Index l, Index c, Scalar init_value, bool gpu) : row(l), column(c), mat(0), in_gpu(gpu), gpu_ptr(nullptr) {
+    if (gpu) {
+        #ifdef USE_CUDA
+            check_size(l, c);
+            gpu_ptr = gpu_alloc(get_size());
+            fill_gpu(gpu_ptr, init_value, l, c);
+        #else
+            std::cerr << "Erreur : CUDA non disponible" << std::endl;
+            exit(EXIT_FAILURE);
+        #endif
+    }
+    else {
+        mat = std::vector<Scalar>(check_size(l,c), init_value);
+    }
+}
+
 Matrix::Matrix(Matrix const &m) : row(m.row), column(m.column), mat(m.mat), in_gpu(m.in_gpu), gpu_ptr(nullptr) {
     if (in_gpu) {
         #ifdef USE_CUDA
@@ -229,7 +245,7 @@ Matrix Matrix::transpose() const {
 
 Matrix &Matrix::broadcast(Matrix const &biais) {
     assert(biais.row == 1 && biais.column == column && "Erreur : Dimension du biais incorrect");
-    assert(in_gpu == m.in_gpu && "Erreur : Les matrices ne sont pas sur le même device");
+    assert(in_gpu == biais.in_gpu && "Erreur : Les matrices ne sont pas sur le même device");
     if (in_gpu) {
         #ifdef USE_CUDA
         broadcast_gpu(gpu_ptr, biais.gpu_ptr, column, row);

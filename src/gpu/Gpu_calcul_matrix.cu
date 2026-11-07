@@ -60,6 +60,12 @@ __global__ void sum_row_kernel(Scalar* A, const Scalar* B, Index r, Index c) {
     }
 }
 
+__global__ void fill_kernel(Scalar* A, const Scalar s, Index r, Index c) {
+    auto x = blockIdx.x * blockDim.x + threadIdx.x;
+    if (x < r*c) {
+        A[x] = s;
+    }
+}
 
 
 void gpu_matrix_multiply(Matrix const &A, Matrix const &B, Matrix &C) {
@@ -165,5 +171,12 @@ void sum_row_gpu(Scalar* ptrA, Scalar* ptrB, Index c, Index r) {
     dim3 threads(g,g);
     dim3 blocs((c + g - 1) / g, (r + g - 1) / g);
     sum_row_kernel<<<blocs, threads>>>(ptrA, ptrB, r, c);
+    CUDA_CHECK(cudaGetLastError());
+}
+
+void fill_gpu(Scalar* ptrA, Scalar s, Index r, Index c) {
+    Index threads = 256;
+    Index blocs = (c*r + threads - 1) / threads;
+    fill_kernel<<<blocs, threads>>>(ptrA, s, r, c);
     CUDA_CHECK(cudaGetLastError());
 }
