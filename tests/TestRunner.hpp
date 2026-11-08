@@ -94,7 +94,7 @@ inline void comparaison_matrix(TestRunner &runner, Matrix const &result, Matrix 
     std::cout << "Matrice attendu :\n\n" << matExpectedStr.str() << "\n\nMatrice obtenu :\n\n" << matResultStr.str() << std::endl;
 }
 
-inline void comparaison_matrix_big(TestRunner &runner, Matrix const &result, Matrix const &expected, std::string const &nom) {
+inline void comparaison_matrix_big(TestRunner &runner, Matrix const &result, Matrix const &expected, std::string const &nom, Scalar tolerance=0) {
     std::ostringstream nCo;
     nCo << nom << " : Test dimension colonne";
     std::ostringstream nRow;
@@ -108,7 +108,7 @@ inline void comparaison_matrix_big(TestRunner &runner, Matrix const &result, Mat
     Index nb_error = 0;
     for (Index i = 0; i < expected.get_row(); i++) {
         for (Index j = 0; j < expected.get_column(); j++) {
-            if (result.get_value(i,j) != expected.get_value(i,j)) {
+            if (std::abs(result.get_value(i,j) - expected.get_value(i,j)) > tolerance) {
                 ++nb_error;
                 std::cout << "[ERROR] case(" << i << "," << j << ") : Attendu " << expected.get_value(i,j) << ", Obtenu " << result.get_value(i,j) << std::endl;
             }

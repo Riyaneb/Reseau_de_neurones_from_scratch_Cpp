@@ -112,7 +112,69 @@ void test_copy_matrix(TestRunner &runner) {
 
 }
 
+void test_calcul_gpu(TestRunner &runner) {
+    Matrix A(1000,10,0, false);
+    Matrix B(1000,10,0, false);
+    Random gen;
+
+    init_weight_Glorot(A, gen);
+    init_weight_Glorot(B, gen);
+
+    Matrix c_A = A;
+    Matrix c_B = B;
+
+    A.to_gpu();
+    B.to_gpu();
+
+    runner.section("Vérification calcul sur gpu");
+
+    A += B;
+    c_A += c_B;
+    A.to_cpu();
+    comparaison_matrix_big(runner, A, c_A, "A += B");
+    A.to_gpu();
+
+    A -= B;
+    c_A -= c_B;
+    A.to_cpu();
+    comparaison_matrix_big(runner, A, c_A, "A -= B");
+    A.to_gpu();
+
+    A *= 5;
+    c_A *= 5;
+    A.to_cpu();
+    comparaison_matrix_big(runner, A , c_A, "A *= 5");
+    A.to_gpu();
+
+    Matrix C = hadamard(A,B);
+    C.to_cpu();
+    comparaison_matrix_big(runner, C, hadamard(c_A,c_B), "A * B (case par case)");
+
+    Matrix biais(1,10,4,true);
+    C = A.broadcast(biais);
+    C.to_cpu();
+    biais.to_cpu();
+    comparaison_matrix_big(runner, C, c_A.broadcast(biais), "Broadcast d'un biais sur A");
+
+    C = A.transpose();
+    C.to_cpu();
+    comparaison_matrix_big(runner, C, c_A.transpose(), "Transpose de A");
+
+    C = A.sum_row();
+    C.to_cpu();
+    comparaison_matrix_big(runner, C, c_A.sum_row(), "Somme des lignes de A", 1e-1);
+
+    Matrix D(10, 1000);
+    init_weight_Glorot(D,gen);
+    Matrix c_D = D;
+    D.to_gpu();
+    C = A*D;
+    C.to_cpu();
+    comparaison_matrix_big(runner, C, c_A*c_D, "A * B (multiplication matricielle)", 1e-3);
+}
+
 void test_general_matrix_gpu(TestRunner &runner) {
     test_matrix_to_gpu(runner);
     test_copy_matrix(runner);
+    test_calcul_gpu(runner);
 }
