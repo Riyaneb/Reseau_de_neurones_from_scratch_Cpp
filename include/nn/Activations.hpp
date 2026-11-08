@@ -21,8 +21,10 @@ protected:
 class Sigmoid : public ActivationLayer {
 public:
     Sigmoid(Index nb) : ActivationLayer(nb) {}
+    Matrix forward(Matrix const &in) override;
+    Matrix backward(Matrix const &gradientOut) override;
     std::unique_ptr<Layer> clone() const override;
-    inline std::string layer_name() const override {
+    std::string layer_name() const override {
         return "Sigmoid";
     }
 protected:
@@ -33,8 +35,10 @@ protected:
 class Tanh : public ActivationLayer {
 public:
     Tanh(Index nb) : ActivationLayer(nb) {}
+    Matrix forward(Matrix const &in) override;
+    Matrix backward(Matrix const &gradientOut) override;
     std::unique_ptr<Layer> clone() const override;
-    inline std::string layer_name() const override {
+    std::string layer_name() const override {
         return "Tanh";
     }
 protected:
@@ -45,8 +49,10 @@ protected:
 class Identity : public ActivationLayer {
 public:
     Identity(Index nb) : ActivationLayer(nb) {}
+    Matrix forward(Matrix const &in) override;
+    Matrix backward(Matrix const &gradientOut) override;
     std::unique_ptr<Layer> clone() const override;
-    inline std::string layer_name() const override {
+    std::string layer_name() const override {
         return "Identity";
     }
 protected:

@@ -63,8 +63,8 @@ const Matrix &DenseLayer::get_gradBiais() const {
 }
 
 void DenseLayer::set_gradients_zero() {
-    gradWeight = Matrix(gradWeight.get_row(),gradWeight.get_column(),0);
-    gradBiais = Matrix(gradBiais.get_row(),gradBiais.get_column(),0);
+    gradWeight.fill(0);
+    gradBiais.fill(0);
 }
 
 PairParameters DenseLayer::get_parameters() {

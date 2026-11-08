@@ -43,8 +43,8 @@ PairParameters ConvLayer::get_parameters() {
 }
 
 void ConvLayer::set_gradients_zero() {
-    gradWeight = Matrix(gradWeight.get_row(),gradWeight.get_column(),0);
-    gradBiais = Matrix(gradBiais.get_row(),gradBiais.get_column(),0);
+    gradWeight.fill(0);
+    gradBiais.fill(0);
 }
 
 std::unique_ptr<Layer> ConvLayer::clone() const {
@@ -53,13 +53,11 @@ std::unique_ptr<Layer> ConvLayer::clone() const {
 
 Matrix ConvLayer::forward(Matrix const &in) {
     assert(in.get_column() == nInput() && "Erreur : Dimension de la matrice d'entrée incorrecte");
-    Timer t;
-    Matrix outputNeural(in.get_row(),nOutput(), 0);
+    Matrix outputNeural(in.get_row(),nOutput(), 0, in.get_in_gpu());
     Index nbPos = shapeOut.get_height() * shapeOut.get_width();
     Shape sKernel(shapeIn.get_channel(), sizeKernel, sizeKernel);
 
-    t.reset();
-    im2col = Matrix(in.get_row() * nbPos,sKernel.total_values());
+    im2col = Matrix(in.get_row() * nbPos,sKernel.total_values(), 0, in.get_in_gpu());
     #pragma omp parallel for schedule(dynamic,1)
     for (Index i = 0; i < in.get_row(); i++) {
         for (Index h = 0; h < shapeOut.get_height(); h++) {
@@ -77,13 +75,10 @@ Matrix ConvLayer::forward(Matrix const &in) {
         }
     }
 
-    t.reset();
     Matrix res = im2col * weight.transpose();
 
-    t.reset();
     res.broadcast(biais);
 
-    t.reset();
     #pragma omp parallel for schedule(dynamic,1)
     for (Index i = 0; i < in.get_row(); i++) {
         for (Index p = 0; p < nbPos; p++) {
@@ -100,7 +95,7 @@ Matrix ConvLayer::backward(Matrix const &gradientOut) {
     Index nbPos = shapeOut.get_height() * shapeOut.get_width();
     assert(gradientOut.get_column() == nOutput() && gradientOut.get_row() * nbPos == im2col.get_row() && "Erreur : Dimension gradientOut");
 
-    Matrix gradRes(nbPos*gradientOut.get_row(), nKer);
+    Matrix gradRes(nbPos*gradientOut.get_row(), nKer, 0, gradientOut.get_in_gpu());
     #pragma omp parallel for schedule(dynamic,1)
     for (Index i = 0; i < gradientOut.get_row(); i++) {
         for (Index p = 0; p < nbPos; p++) {
@@ -117,7 +112,7 @@ Matrix ConvLayer::backward(Matrix const &gradientOut) {
 
     if (need_grad_input) {
         Matrix gradBlocX = gradRes * weight;
-        Matrix gradX(gradientOut.get_row(), nInput(), 0);
+        Matrix gradX(gradientOut.get_row(), nInput(), 0, gradientOut.get_in_gpu());
         #pragma omp parallel for schedule(dynamic,1)
         for (Index i = 0; i < gradX.get_row(); i++) {
             for (Index h = 0; h < shapeOut.get_height(); h++) {

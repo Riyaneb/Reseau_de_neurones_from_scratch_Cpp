@@ -51,6 +51,8 @@ set(CORE_SOURCE
         include/utils/PredictionCnn.hpp
         include/gpu/memory_manage_matrix.hpp
         src/gpu/Memory_manage_matrix.cpp
+        src/gpu/Gpu_Activation.cu
+        include/gpu/Gpu_Activation.hpp
 )
 
 set(TEST

@@ -80,6 +80,8 @@ public:
     Index max_index_value_row(Index r) const;
     Scalar max_value_row(Index r) const;
 
+    void fill(Scalar e);
+
 
 private:
     static Index check_size(Index l, Index c);

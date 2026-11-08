@@ -484,3 +484,20 @@ Matrix::~Matrix() {
     }
 #endif
 }
+
+void Matrix::fill(Scalar e) {
+    if (in_gpu) {
+        #ifdef USE_CUDA
+            fill_gpu(gpu_ptr, e, row, column);
+        #else
+            std::cerr << "Erreur : CUDA non disponible" << std::endl;
+            exit(EXIT_FAILURE);
+        #endif
+    }
+    else {
+        #pragma omp parallel for if(column * row > MIN_SIZE_OMP) schedule(dynamic,8192)
+        for (Index i = 0; i < row*column; i++) {
+            mat[i] = e;
+        }
+    }
+}

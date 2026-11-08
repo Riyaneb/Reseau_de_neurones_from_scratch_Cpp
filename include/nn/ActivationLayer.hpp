@@ -8,8 +8,6 @@ class ActivationLayer : public Layer {
 public:
     ActivationLayer(Index nb) : nbInput(nb), input(1,nb) {}
     virtual ~ActivationLayer() {}
-    Matrix forward(Matrix const &in) override;
-    Matrix backward(Matrix const &gradientOut) override;
     Index nInput() const override;
     Index nOutput() const override;
     virtual std::string layer_name() const = 0;

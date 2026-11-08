@@ -33,7 +33,7 @@ std::pair<Scalar, Index> MaxPoolingLayer::max(std::vector<std::pair<Scalar, Inde
 
 Matrix MaxPoolingLayer::forward(Matrix const &in) {
     assert(in.get_column() == nInput() && "Erreur : Dimension de l'entrée incorrecte");
-    Matrix result(in.get_row(), nOutput());
+    Matrix result(in.get_row(), nOutput(), 0, in.get_in_gpu());
     posMaxim = Matrix(in.get_row(), nOutput());
 
     #pragma omp parallel for schedule(dynamic,1)
@@ -67,7 +67,7 @@ Matrix MaxPoolingLayer::forward(Matrix const &in) {
 
 Matrix MaxPoolingLayer::backward(Matrix const &gradientOut) {
     assert(gradientOut.get_column() == nOutput() && gradientOut.get_row() == posMaxim.get_row() && "Erreur : Dimension gradientOut incorrecte");
-    Matrix gradX(gradientOut.get_row(), nInput(), 0);
+    Matrix gradX(gradientOut.get_row(), nInput(), 0, gradientOut.get_in_gpu());
     #pragma omp parallel for schedule(dynamic,1)
     for (Index i = 0; i < gradientOut.get_row(); i++) {
         for (Index j = 0; j < posMaxim.get_column(); j++) {
