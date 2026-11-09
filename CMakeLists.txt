@@ -57,6 +57,8 @@ set(CORE_SOURCE
         include/gpu/Gpu_Loss.hpp
         src/gpu/Gpu_Opitmizer.cu
         include/gpu/Gpu_Optimizer.hpp
+        src/gpu/Gpu_MaxPooling.cu
+        include/gpu/Gpu_MaxPooling.hpp
 )
 
 set(TEST

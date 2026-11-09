@@ -1,5 +1,11 @@
 #include "cnn/MaxPoolingLayer.hpp"
 #include <omp.h>
+#include <iostream>
+#include <cstdlib>
+#ifdef USE_CUDA
+#include "gpu/Gpu_MaxPooling.hpp"
+#endif
+
 
 MaxPoolingLayer::MaxPoolingLayer(Shape const &s, Index dimKer) : shapeIn(s), shapeOut(s.get_channel(), s.get_height() / dimKer, s.get_width() / dimKer), sizeKernel(dimKer), posMaxim(1,1) {
     assert(dimKer > 0 && "Erreur : dimKer incorrecte (dimension négative)");
@@ -25,10 +31,15 @@ Matrix MaxPoolingLayer::forward(Matrix const &in) {
     posMaxim = Matrix(in.get_row(), nOutput(), 0, in.get_in_gpu());
 
     if (in.get_in_gpu()) {
-        
+        #ifdef USE_CUDA
+        forward_MaxPooling_gpu(posMaxim.get_gpu_ptr(), in.get_gpu_ptr(), result.get_gpu_ptr(), in.get_row(), nInput(), nOutput(), shapeIn.get_height(), shapeIn.get_width(), shapeOut.get_height(), shapeOut.get_width(), sizeKernel);
+        #else
+            std::cerr << "Erreur : CUDA non disponible" << std::endl;
+            exit(EXIT_FAILURE);
+        #endif
     }
     else {
-#pragma omp parallel for schedule(dynamic,1)
+        #pragma omp parallel for schedule(dynamic,1)
         for (Index i = 0; i < in.get_row(); i++) {
             Scalar maxi;
             Index maxi_id;
@@ -60,11 +71,22 @@ Matrix MaxPoolingLayer::forward(Matrix const &in) {
 
 Matrix MaxPoolingLayer::backward(Matrix const &gradientOut) {
     assert(gradientOut.get_column() == nOutput() && gradientOut.get_row() == posMaxim.get_row() && "Erreur : Dimension gradientOut incorrecte");
+    assert(gradientOut.get_in_gpu() == posMaxim.get_in_gpu() && "Erreur : gradientOut et posMaxim ne sont pas dans le même device");
     Matrix gradX(gradientOut.get_row(), nInput(), 0, gradientOut.get_in_gpu());
-    #pragma omp parallel for schedule(dynamic,1)
-    for (Index i = 0; i < gradientOut.get_row(); i++) {
-        for (Index j = 0; j < posMaxim.get_column(); j++) {
-            gradX.get_value(i,(Index)posMaxim.get_value(i,j)) = gradientOut.get_value(i,j);
+    if (gradientOut.get_in_gpu()) {
+        #ifdef USE_CUDA
+            backward_MaxPooling_gpu(gradX.get_gpu_ptr(), gradientOut.get_gpu_ptr(), posMaxim.get_gpu_ptr(),gradientOut.get_row() ,nInput(), nOutput());
+        #else
+            std::cerr << "Erreur : CUDA non disponible" << std::endl;
+            exit(EXIT_FAILURE);
+        #endif
+    }
+    else {
+        #pragma omp parallel for schedule(dynamic,1)
+        for (Index i = 0; i < gradientOut.get_row(); i++) {
+            for (Index j = 0; j < posMaxim.get_column(); j++) {
+                gradX.get_value(i,(Index)posMaxim.get_value(i,j)) = gradientOut.get_value(i,j);
+            }
         }
     }
     return gradX;
