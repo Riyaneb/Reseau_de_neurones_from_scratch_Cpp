@@ -7,6 +7,7 @@
 
 Scalar QuadraLoss::calculate_loss(Matrix const &prediction, Matrix const &target) const {
     assert(prediction.get_row() == target.get_row() && prediction.get_column() == target.get_column() && "Erreur : Les matrices n'ont pas la même dimension");
+    assert(prediction.get_in_gpu() == target.get_in_gpu() && "Erreur : Les matrices ne sont pas sur le même device");
     Scalar res;
     if (prediction.get_in_gpu()) {
         #ifdef USE_CUDA
@@ -35,6 +36,7 @@ Scalar QuadraLoss::calculate_loss(Matrix const &prediction, Matrix const &target
 
 Matrix QuadraLoss::calculate_gradients_loss(Matrix const &prediction, Matrix const &target) const {
     assert(prediction.get_row() == target.get_row() && prediction.get_column() == target.get_column() && "Erreur : Les matrices n'ont pas la même dimension");
+    assert(prediction.get_in_gpu() == target.get_in_gpu() && "Erreur : Les matrices ne sont pas sur le même device");
     Matrix grad = prediction - target;
     if (prediction.get_in_gpu()) {
         #ifdef USE_CUDA
@@ -59,6 +61,7 @@ Matrix QuadraLoss::calculate_gradients_loss(Matrix const &prediction, Matrix con
 
 Scalar BCE::calculate_loss(Matrix const &prediction, Matrix const &target) const {
     assert(prediction.get_row() == target.get_row() && prediction.get_column() == target.get_column() && "Erreur : Les matrices n'ont pas la même dimension");
+    assert(prediction.get_in_gpu() == target.get_in_gpu() && "Erreur : Les matrices ne sont pas sur le même device");
     Scalar res;
     if (prediction.get_in_gpu()) {
         #ifdef USE_CUDA
@@ -89,6 +92,7 @@ Scalar BCE::calculate_loss(Matrix const &prediction, Matrix const &target) const
 
 Matrix BCE::calculate_gradients_loss(Matrix const &prediction, Matrix const &target) const {
     assert(prediction.get_row() == target.get_row() && prediction.get_column() == target.get_column() && "Erreur : Les matrices n'ont pas la même dimension");
+    assert(prediction.get_in_gpu() == target.get_in_gpu() && "Erreur : Les matrices ne sont pas sur le même device");
     Index n = prediction.get_row();
     Index c = prediction.get_column();
     Matrix grad(n,c,0,prediction.get_in_gpu());
@@ -117,6 +121,7 @@ Matrix BCE::calculate_gradients_loss(Matrix const &prediction, Matrix const &tar
 
 Scalar CCE::calculate_loss(Matrix const &prediction, Matrix const &target) const {
     assert(prediction.get_row() == target.get_row() && prediction.get_column() == target.get_column() && "Erreur : Les matrices n'ont pas la même dimension");
+    assert(prediction.get_in_gpu() == target.get_in_gpu() && "Erreur : Les matrices ne sont pas sur le même device");
     Scalar res;
 
     if (prediction.get_in_gpu()) {
@@ -151,6 +156,7 @@ Scalar CCE::calculate_loss(Matrix const &prediction, Matrix const &target) const
 
 Matrix CCE::calculate_gradients_loss(Matrix const &prediction, Matrix const &target) const {
     assert(prediction.get_row() == target.get_row() && prediction.get_column() == target.get_column() && "Erreur : Les matrices n'ont pas la même dimension");
+    assert(prediction.get_in_gpu() == target.get_in_gpu() && "Erreur : Les matrices ne sont pas sur le même device");
     Index n = prediction.get_row();
     Index c = prediction.get_column();
     Matrix grad(n,c, 0, prediction.get_in_gpu());

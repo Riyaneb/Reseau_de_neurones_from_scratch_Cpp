@@ -15,8 +15,6 @@ public:
     inline std::string layer_name() const override {
         return "MaxPooling";
     }
-
-    static std::pair<Scalar, Index> max(std::vector<std::pair<Scalar, Index>> const &tab);
 private:
     Shape shapeIn;
     Shape shapeOut;
