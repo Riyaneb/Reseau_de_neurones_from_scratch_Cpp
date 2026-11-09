@@ -53,6 +53,8 @@ set(CORE_SOURCE
         src/gpu/Memory_manage_matrix.cpp
         src/gpu/Gpu_Activation.cu
         include/gpu/Gpu_Activation.hpp
+        src/gpu/Gpu_Loss.cu
+        include/gpu/Gpu_Loss.hpp
 )
 
 set(TEST
