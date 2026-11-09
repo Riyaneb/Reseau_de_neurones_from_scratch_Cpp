@@ -1,8 +1,11 @@
 #include "cnn/ConvLayer.hpp"
 #include <cassert>
-
+#include <iostream>
+#include <cstdlib>
 #include "utils/Timer.hpp"
-
+#ifdef USE_CUDA
+#include "gpu/Gpu_Convolution.hpp"
+#endif
 
 ConvLayer::ConvLayer(Shape const &s, Index nKernel, Index dimKer, Random &gen, Index initChoice) : shapeIn(s), shapeOut(nKernel, s.get_height() - dimKer + 1, s.get_width() - dimKer + 1), sizeKernel(dimKer),nKer(nKernel), weight(nKernel, s.get_channel()*dimKer*dimKer), biais(1, nKernel), gradWeight(nKernel, s.get_channel()*dimKer*dimKer,0), gradBiais(1, nKernel,0), im2col(1,1) {
     assert((initChoice == 0 || initChoice == 1) && "Erreur : initChoice incorrecte");
@@ -58,16 +61,26 @@ Matrix ConvLayer::forward(Matrix const &in) {
     Shape sKernel(shapeIn.get_channel(), sizeKernel, sizeKernel);
 
     im2col = Matrix(in.get_row() * nbPos,sKernel.total_values(), 0, in.get_in_gpu());
-    #pragma omp parallel for schedule(dynamic,1)
-    for (Index i = 0; i < in.get_row(); i++) {
-        for (Index h = 0; h < shapeOut.get_height(); h++) {
-            for (Index w = 0; w < shapeOut.get_width(); w++) {
-                Index cptK = 0;
-                for (Index c = 0; c < sKernel.get_channel(); c++) {
-                    for (Index hk = 0; hk < sizeKernel; hk++) {
-                        for (Index wk = 0; wk < sizeKernel; wk++) {
-                            im2col.get_value(i*(nbPos) + h*shapeOut.get_width() + w,cptK) = in.get_value(i,shapeIn.get_column(c,hk+h,wk+w));
-                            cptK++;
+    if (in.get_in_gpu()) {
+        #ifdef USE_CUDA
+            forward_im2col_gpu(in.get_gpu_ptr(), im2col.get_gpu_ptr(), nbPos, im2col.get_row(), im2col.get_column(), shapeIn.get_height(), shapeIn.get_width(), nInput(), shapeOut.get_width(), sizeKernel);
+        #else
+            std::cerr << "Erreur : CUDA non disponible" << std::endl;
+            exit(EXIT_FAILURE);
+        #endif
+    }
+    else {
+        #pragma omp parallel for schedule(dynamic,1)
+        for (Index i = 0; i < in.get_row(); i++) {
+            for (Index h = 0; h < shapeOut.get_height(); h++) {
+                for (Index w = 0; w < shapeOut.get_width(); w++) {
+                    Index cptK = 0;
+                    for (Index c = 0; c < sKernel.get_channel(); c++) {
+                        for (Index hk = 0; hk < sizeKernel; hk++) {
+                            for (Index wk = 0; wk < sizeKernel; wk++) {
+                                im2col.get_value(i*(nbPos) + h*shapeOut.get_width() + w,cptK) = in.get_value(i,shapeIn.get_column(c,hk+h,wk+w));
+                                cptK++;
+                            }
                         }
                     }
                 }
@@ -79,11 +92,21 @@ Matrix ConvLayer::forward(Matrix const &in) {
 
     res.broadcast(biais);
 
-    #pragma omp parallel for schedule(dynamic,1)
-    for (Index i = 0; i < in.get_row(); i++) {
-        for (Index p = 0; p < nbPos; p++) {
-            for (Index k = 0; k < nKer; k++) {
-                outputNeural.get_value(i,k*(nbPos) + p) = res.get_value(i*(nbPos)+p,k);
+    if (outputNeural.get_in_gpu()) {
+        #ifdef USE_CUDA
+            forward_output_gpu(res.get_gpu_ptr(), outputNeural.get_gpu_ptr(), nbPos, nKer, in.get_row());
+        #else
+            std::cerr << "Erreur : CUDA non disponible" << std::endl;
+            exit(EXIT_FAILURE);
+        #endif
+    }
+    else {
+        #pragma omp parallel for schedule(dynamic,1)
+        for (Index i = 0; i < in.get_row(); i++) {
+            for (Index p = 0; p < nbPos; p++) {
+                for (Index k = 0; k < nKer; k++) {
+                    outputNeural.get_value(i,k*(nbPos) + p) = res.get_value(i*(nbPos)+p,k);
+                }
             }
         }
     }
@@ -94,13 +117,25 @@ Matrix ConvLayer::forward(Matrix const &in) {
 Matrix ConvLayer::backward(Matrix const &gradientOut) {
     Index nbPos = shapeOut.get_height() * shapeOut.get_width();
     assert(gradientOut.get_column() == nOutput() && gradientOut.get_row() * nbPos == im2col.get_row() && "Erreur : Dimension gradientOut");
+    assert(gradientOut.get_in_gpu() == im2col.get_in_gpu() && "Erreur : gradientOut et im2col ne sont pas dans le même device");
 
     Matrix gradRes(nbPos*gradientOut.get_row(), nKer, 0, gradientOut.get_in_gpu());
-    #pragma omp parallel for schedule(dynamic,1)
-    for (Index i = 0; i < gradientOut.get_row(); i++) {
-        for (Index p = 0; p < nbPos; p++) {
-            for (Index k = 0; k < nKer; k++) {
-                gradRes.get_value(i*(nbPos)+p,k) = gradientOut.get_value(i,k*(nbPos) + p);
+
+    if (gradRes.get_in_gpu()) {
+        #ifdef USE_CUDA
+            backward_output_gpu(gradientOut.get_gpu_ptr(), gradRes.get_gpu_ptr(), nbPos, nKer, gradientOut.get_row());
+        #else
+            std::cerr << "Erreur : CUDA non disponible" << std::endl;
+            exit(EXIT_FAILURE);
+        #endif
+    }
+    else {
+        #pragma omp parallel for schedule(dynamic,1)
+        for (Index i = 0; i < gradientOut.get_row(); i++) {
+            for (Index p = 0; p < nbPos; p++) {
+                for (Index k = 0; k < nKer; k++) {
+                    gradRes.get_value(i*(nbPos)+p,k) = gradientOut.get_value(i,k*(nbPos) + p);
+                }
             }
         }
     }
@@ -113,16 +148,26 @@ Matrix ConvLayer::backward(Matrix const &gradientOut) {
     if (need_grad_input) {
         Matrix gradBlocX = gradRes * weight;
         Matrix gradX(gradientOut.get_row(), nInput(), 0, gradientOut.get_in_gpu());
-        #pragma omp parallel for schedule(dynamic,1)
-        for (Index i = 0; i < gradX.get_row(); i++) {
-            for (Index h = 0; h < shapeOut.get_height(); h++) {
-                for (Index w = 0; w < shapeOut.get_width(); w++) {
-                    Index cptK = 0;
-                    for (Index c = 0; c < shapeIn.get_channel(); c++) {
-                        for (Index hk = 0; hk < sizeKernel; hk++) {
-                            for (Index wk = 0; wk < sizeKernel; wk++) {
-                                gradX.get_value(i,shapeIn.get_column(c,hk+h,wk+w)) += gradBlocX.get_value(i*(nbPos) + h*shapeOut.get_width() + w,cptK);
-                                cptK++;
+        if (gradX.get_in_gpu()) {
+            #ifdef USE_CUDA
+                backward_col2im_gpu(gradBlocX.get_gpu_ptr(), gradX.get_gpu_ptr(), nbPos, im2col.get_row(), im2col.get_column(), shapeIn.get_height(), shapeIn.get_width(), nInput(), shapeOut.get_width(), sizeKernel);
+            #else
+                std::cerr << "Erreur : CUDA non disponible" << std::endl;
+                exit(EXIT_FAILURE);
+            #endif
+        }
+        else {
+            #pragma omp parallel for schedule(dynamic,1)
+            for (Index i = 0; i < gradX.get_row(); i++) {
+                for (Index h = 0; h < shapeOut.get_height(); h++) {
+                    for (Index w = 0; w < shapeOut.get_width(); w++) {
+                        Index cptK = 0;
+                        for (Index c = 0; c < shapeIn.get_channel(); c++) {
+                            for (Index hk = 0; hk < sizeKernel; hk++) {
+                                for (Index wk = 0; wk < sizeKernel; wk++) {
+                                    gradX.get_value(i,shapeIn.get_column(c,hk+h,wk+w)) += gradBlocX.get_value(i*(nbPos) + h*shapeOut.get_width() + w,cptK);
+                                    cptK++;
+                                }
                             }
                         }
                     }

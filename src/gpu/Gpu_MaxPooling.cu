@@ -1,7 +1,4 @@
-#include <algorithm>
-
 #include "gpu/GpuCudaCheck.hpp"
-#include "gpu/Memory_manage_matrix.hpp"
 #include "math/Matrix.hpp"
 #include <cassert>
 #include <iostream>
