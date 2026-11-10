@@ -69,3 +69,29 @@ Network Network::clone() const {
     }
     return net;
 }
+
+void Network::to_cpu() {
+    PairParameters::iterator it;
+    auto params = get_parameters();
+    for (it = params.begin(); it != params.end(); ++it) {
+        it->first->to_cpu();
+        it->second->to_cpu();
+    }
+}
+
+void Network::to_gpu() {
+    PairParameters::iterator it;
+    auto params = get_parameters();
+    for (it = params.begin(); it != params.end(); ++it) {
+        it->first->to_gpu();
+        it->second->to_gpu();
+    }
+}
+
+bool Network::in_gpu() {
+    auto params = get_parameters();
+    if (params.empty()) {
+        return false;
+    }
+    return params.begin()->first->get_in_gpu();
+}

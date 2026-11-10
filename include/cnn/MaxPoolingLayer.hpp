@@ -12,8 +12,16 @@ public:
     Index nInput() const override;
     Index nOutput() const override;
     std::unique_ptr<Layer> clone() const override;
-    inline std::string layer_name() const override {
+    std::string layer_name() const override {
         return "MaxPooling";
+    }
+    std::vector<Index> save_config() const override {
+        std::vector<Index> config;
+        config.push_back(shapeIn.get_channel());
+        config.push_back(shapeIn.get_height());
+        config.push_back(shapeIn.get_width());
+        config.push_back(sizeKernel);
+        return config;
     }
 private:
     Shape shapeIn;

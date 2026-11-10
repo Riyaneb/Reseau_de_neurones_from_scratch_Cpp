@@ -17,6 +17,7 @@ public:
     virtual PairParameters get_parameters();
     virtual void set_gradients_zero();
     virtual std::unique_ptr<Layer> clone() const = 0;
+    virtual std::vector<Index> save_config() const = 0;
 
     void set_need_grad_input(bool choice) {
         need_grad_input = choice;

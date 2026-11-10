@@ -11,6 +11,11 @@ public:
     Index nInput() const override;
     Index nOutput() const override;
     virtual std::string layer_name() const = 0;
+    std::vector<Index> save_config() const override {
+        std::vector<Index> config(0);
+        config.push_back(nbInput);
+        return config;
+    }
 protected:
     Index nbInput;
     Matrix input;

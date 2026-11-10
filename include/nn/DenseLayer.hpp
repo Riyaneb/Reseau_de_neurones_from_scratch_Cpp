@@ -24,9 +24,17 @@ public:
     const Matrix& get_gradWeight() const;
     const Matrix& get_gradBiais() const;
 
-    inline std::string layer_name() const override {
+    std::string layer_name() const override {
         return "DenseLayer";
     }
+
+    std::vector<Index> save_config() const override {
+        std::vector<Index> config(0);
+        config.push_back(weight.get_row());
+        config.push_back(weight.get_column());
+        return config;
+    }
+
 private:
     Matrix weight;
     Matrix biais;

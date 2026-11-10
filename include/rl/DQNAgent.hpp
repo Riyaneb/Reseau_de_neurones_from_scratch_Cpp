@@ -31,7 +31,7 @@ public:
     void add_buffer(Transition const &transition);
     void sync_target();
     void learn();
-    void load_network(std::string const &nom);
+    void load_network(std::string const &nom, bool in_gpu=false);
 
     Scalar get_loss() const;
     Scalar actual_epsilon() const;

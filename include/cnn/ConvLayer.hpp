@@ -15,8 +15,17 @@ public:
     PairParameters get_parameters() override;
     void set_gradients_zero() override;
     std::unique_ptr<Layer> clone() const override;
-    inline std::string layer_name() const override {
+    std::string layer_name() const override {
         return "Convolution";
+    }
+    std::vector<Index> save_config() const override {
+        std::vector<Index> config(0);
+        config.push_back(shapeIn.get_channel());
+        config.push_back(shapeIn.get_height());
+        config.push_back(shapeIn.get_width());
+        config.push_back(nKer);
+        config.push_back(sizeKernel);
+        return config;
     }
 
 private:

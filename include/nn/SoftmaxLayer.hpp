@@ -15,6 +15,11 @@ public:
     std::string layer_name() const override {
         return "Softmax";
     }
+    std::vector<Index> save_config() const override {
+        std::vector<Index> config(0);
+        config.push_back(nbInput);
+        return config;
+    }
 protected:
     static Scalar fn_softmax(Matrix const &M,Index row,Index column);
     Index nbInput;

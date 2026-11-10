@@ -11,10 +11,16 @@ public:
     Index nInput() const override;
     Index nOutput() const override;
     std::unique_ptr<Layer> clone() const override;
-    inline std::string layer_name() const override {
+    std::string layer_name() const override {
         return "Flatten";
     }
-
+    std::vector<Index> save_config() const override {
+        std::vector<Index> config(0);
+        config.push_back(shape.get_channel());
+        config.push_back(shape.get_height());
+        config.push_back(shape.get_width());
+        return config;
+    }
 private:
     Shape shape;
 };

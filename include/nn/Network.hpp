@@ -15,10 +15,15 @@ public:
     PairParameters get_parameters();
     void set_gradients_zero();
     Network clone() const;
-    inline std::vector<std::string> &get_names() {
+    void to_cpu();
+    void to_gpu();
+    bool in_gpu();
+    std::vector<std::string> &get_names() {
         return layers_name;
     }
-
+    std::vector<std::unique_ptr<Layer>> &get_layers() {
+        return layers;
+    }
 
 
 private:

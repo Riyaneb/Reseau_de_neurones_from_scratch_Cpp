@@ -64,8 +64,10 @@ Network DQNAgent::get_network() {
     return main_network.clone();
 }
 
-void DQNAgent::load_network(std::string const &nom) {
-    load(main_network, nom);
+void DQNAgent::load_network(std::string const &nom, bool in_gpu) {
+    Network net;
+    load(net, nom, in_gpu);
+    main_network = std::move(net);
     sync_target();
 }
 
