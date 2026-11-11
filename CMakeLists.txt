@@ -170,6 +170,11 @@ target_link_libraries(train_cnn PRIVATE libNeurone)
 target_compile_features(train_cnn PRIVATE cxx_std_17)
 set_target_properties(train_cnn PROPERTIES CXX_EXTENSIONS OFF)
 
+add_executable(train_gpu_cpu_cnn apps/test_gpu_cpu_cnn.cpp)
+target_link_libraries(train_gpu_cpu_cnn PRIVATE libNeurone)
+target_compile_features(train_gpu_cpu_cnn PRIVATE cxx_std_17)
+set_target_properties(train_gpu_cpu_cnn PROPERTIES CXX_EXTENSIONS OFF)
+
 if(MSVC)
     target_compile_options(libNeurone PRIVATE $<$<COMPILE_LANGUAGE:CXX>:/W4 /arch:AVX2>)
     add_compile_options(/utf-8)

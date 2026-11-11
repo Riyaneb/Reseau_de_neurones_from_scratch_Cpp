@@ -22,20 +22,12 @@ int main() {
     cout << "Chargement du dataset test" << endl;
     DatasetImage dataset_test(s,"MNIST/test", 1, 77);
     cout << "Chargement terminé" << endl;
-    Random gen(87);
     Network net;
     CCE fn_loss;
 
-    net.add(make_unique<ConvLayer>(s,8,3,gen,1));
-    net.add(make_unique<ReLU>(5408));
-    net.add(make_unique<MaxPoolingLayer>(Shape(8,26,26),2));
-    net.add(make_unique<FlattenLayer>(Shape(8,13,13)));
-    net.add(make_unique<DenseLayer>(1352,10,gen));
-    net.add(make_unique<SoftmaxLayer>(10));
-
     Index good_result = 0;
 
-    load(net,"models/reseau_mnist.txt");
+    load(net,"models/reseau_mnist.txt", false);
     Index begin = 0;
     cout << "Test en cours..." << endl;
     while (begin < dataset_test.get_nImages()) {

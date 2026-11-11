@@ -26,18 +26,6 @@ int main() {
     Network net;
     CCE fn_loss;
 
-    net.add(make_unique<ConvLayer>(s,8,3,gen,1));
-    net.add(make_unique<ReLU>(30752));
-    net.add(make_unique<MaxPoolingLayer>(Shape(8,62,62),2));
-    net.add(make_unique<ConvLayer>(Shape(8,31,31),16,3,gen,1));
-    net.add(make_unique<ReLU>(13456));
-    net.add(make_unique<MaxPoolingLayer>(Shape(16,29,29),2));
-    net.add(make_unique<FlattenLayer>(Shape(16,14,14)));
-    net.add(make_unique<DenseLayer>(3136,64,gen));
-    net.add(make_unique<ReLU>(64));
-    net.add(make_unique<DenseLayer>(64,2,gen));
-    net.add(make_unique<SoftmaxLayer>(2));
-
     Index good_result = 0;
 
     load(net,"models/chest_xray.txt");

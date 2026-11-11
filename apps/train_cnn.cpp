@@ -39,7 +39,7 @@ int main() {
     net.add(make_unique<DenseLayer>(64,2,gen));
     net.add(make_unique<SoftmaxLayer>(2));
 
-    load(net,"models/chest_xray.txt");
+    net.to_gpu();
 
     auto parameters = net.get_parameters();
     Adam optimizer(parameters, 0.001);
@@ -55,6 +55,8 @@ int main() {
         Scalar error = 0;
         while (begin < dataset_train.get_nImages()) {
             pair<Matrix, Matrix> batch = dataset_train.get_batch(begin, 32);
+            batch.first.to_gpu();
+            batch.second.to_gpu();
             net.set_gradients_zero();
             Matrix pred = net.forward(batch.first);
             Scalar loss = fn_loss.calculate_loss(pred, batch.second);
@@ -71,7 +73,7 @@ int main() {
         }
 
     }
-    cout << "Fin de l'entrainement (Temps écoulé en release pour 1 epochs : " << t.elapsed() << "s)" << endl;
+    cout << "Fin de l'entrainement (Temps écoulé en release pour 25 epochs : " << t.elapsed() << "s)" << endl;
     save(net, "models/chest_xray.txt");
 
     return 0;
