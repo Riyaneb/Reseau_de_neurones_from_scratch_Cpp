@@ -61,6 +61,8 @@ set(CORE_SOURCE
         include/gpu/Gpu_MaxPooling.hpp
         src/gpu/Gpu_Convolution.cu
         include/gpu/Gpu_Convolution.hpp
+        include/utils/DatasetText.hpp
+        src/utils/DatasetText.cpp
 )
 
 set(TEST
