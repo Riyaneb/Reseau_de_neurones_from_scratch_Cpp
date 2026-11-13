@@ -92,7 +92,8 @@ add_library(libNeurone ${CORE_SOURCE}
         include/utils/Logger.hpp)
 target_compile_features(libNeurone PUBLIC cxx_std_17)
 target_include_directories(libNeurone PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_compile_definitions(libNeurone PUBLIC DATASET_DIR="${CMAKE_SOURCE_DIR}/data/dataset_images")
+target_compile_definitions(libNeurone PUBLIC DATASET_IMAGE_DIR="${CMAKE_SOURCE_DIR}/data/dataset_images")
+target_compile_definitions(libNeurone PUBLIC DATASET_TEXT_DIR="${CMAKE_SOURCE_DIR}/data/dataset_text")
 
 find_package(OpenMP REQUIRED)
 target_link_libraries(libNeurone PUBLIC OpenMP::OpenMP_CXX)

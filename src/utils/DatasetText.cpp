@@ -5,14 +5,24 @@
 #include <cstdlib>
 #include <filesystem>
 #include <iostream>
-#include <cassert>
 
 namespace fs = std::filesystem;
 
 
+void DatasetText::txt_tab_to_matrix(const uint8_t *tab, Matrix &m, std::size_t row, std::size_t txt_size, std::size_t begin_txt, bool is_x) {
+    for (Index i = 0; i < txt_size; i++) {
+        if (is_x) {
+            m.get_value(row+i, 0) = tab[begin_txt+i];
+        }
+        else {
+            m.get_value(row+i,tab[begin_txt + i]) = 1;
+        }
+    }
+}
+
 void DatasetText::raw_txt(std::string const &path_file, DatasetText &dataset) {
 
-    fs::path dataset_path = fs::path(DATASET_DIR) / path_file;
+    fs::path dataset_path = fs::path(DATASET_TEXT_DIR) / path_file;
 
     if (!fs::exists(dataset_path) || !fs::is_directory(dataset_path)) {
         std::cerr << "Erreur : Le dossier n'existe pas : " << dataset_path << std::endl;
@@ -85,4 +95,52 @@ DatasetText::DatasetText(std::string path_file, Index type, std::uint32_t seed) 
             break;
     }
 
+}
+
+std::pair<Matrix, Matrix> DatasetText::get_batch(Index batch_size, Index txt_size, bool in_gpu) {
+    assert(batch_size > 0 && txt_size > 0 && "Erreur : Paramètres incorrecte");
+    assert(txt_size < text.size() && "Erreur : La longueur du texte dépasse la longueur du fichier");
+    Matrix x(batch_size*txt_size, 1), y(batch_size*txt_size, vocabSize);
+
+    for (std::size_t i = 0; i < batch_size; i++) {
+        std::size_t begin_txt = gen.randomizeBigInt(0, text.size()-1-txt_size);
+        txt_tab_to_matrix(text.data(), x, txt_size*i, txt_size, begin_txt, true);
+        txt_tab_to_matrix(text.data(), y, txt_size*i, txt_size, begin_txt+1, false);
+    }
+
+    if (in_gpu) {
+        x.to_gpu();
+        y.to_gpu();
+    }
+
+    return std::make_pair(std::move(x),std::move(y));
+}
+
+std::pair<Matrix, Matrix> DatasetText::get_batch_in_order(Index num_batch, Index batch_size, Index txt_size, bool in_gpu) const {
+    assert(batch_size > 0 && txt_size > 0 && "Erreur : Paramètres incorrecte");
+    assert(txt_size < text.size() && "Erreur : La longueur du texte dépasse la longueur du fichier");
+    assert(num_batch >= 0 && static_cast<size_t>(num_batch+1)*batch_size*txt_size < text.size() && "Erreur : num_batch incorrect");
+    Matrix x(batch_size*txt_size, 1), y(batch_size*txt_size, vocabSize);
+
+    for (std::size_t i = 0; i < batch_size; i++) {
+        std::size_t begin_txt = (static_cast<size_t>(num_batch)*batch_size+i) * txt_size;
+        txt_tab_to_matrix(text.data(), x, txt_size*i, txt_size, begin_txt, true);
+        txt_tab_to_matrix(text.data(), y, txt_size*i, txt_size, begin_txt+1, false);
+    }
+
+    if (in_gpu) {
+        x.to_gpu();
+        y.to_gpu();
+    }
+
+    return std::make_pair(std::move(x),std::move(y));
+}
+
+
+std::string DatasetText::get_line(Index i) const {
+    assert(i < line_start.size() && i >= 0 && "Erreur : Numero de ligne incorrect");
+    if (i+1 == line_start.size()) {
+        return std::string(text.begin()+line_start[i], text.end());
+    }
+    return std::string(text.begin()+line_start[i], text.begin()+line_start[i+1]-1);
 }

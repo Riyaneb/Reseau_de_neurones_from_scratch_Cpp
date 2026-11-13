@@ -47,7 +47,7 @@ void DatasetImage::folder_class(std::string const &folder, DatasetImage &dataset
     int w;
     int c;
 
-    fs::path dataset_path = fs::path(DATASET_DIR) / folder;
+    fs::path dataset_path = fs::path(DATASET_IMAGE_DIR) / folder;
     if (!fs::exists(dataset_path) || !fs::is_directory(dataset_path)) {
         std::cerr << "Erreur : Le dossier n'existe pas : " << dataset_path << std::endl;
         exit(EXIT_FAILURE);
@@ -128,7 +128,7 @@ void DatasetImage::idx_data(std::string const &folder, DatasetImage &dataset) {
     fs::path idx1;
     fs::path idx3;
 
-    fs::path dataset_path = fs::path(DATASET_DIR) / folder;
+    fs::path dataset_path = fs::path(DATASET_IMAGE_DIR) / folder;
 
     if (!fs::exists(dataset_path) || !fs::is_directory(dataset_path)) {
         std::cerr << "Erreur : Le dossier n'existe pas : " << dataset_path << std::endl;
