@@ -44,3 +44,11 @@ void init_weight_Glorot_CNN(Matrix &weight, Random &gen, Index dimk) {
         }
     }
 }
+
+void init_weight_embedding(Matrix &weight, Random &gen) {
+    for (Index i = 0; i < weight.get_row(); i++) {
+        for (Index j = 0; j < weight.get_column(); j++) {
+            weight.get_value(i,j) = gen.randomizeNormal(0, 0.02);
+        }
+    }
+}

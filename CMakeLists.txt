@@ -63,6 +63,10 @@ set(CORE_SOURCE
         include/gpu/Gpu_Convolution.hpp
         include/utils/DatasetText.hpp
         src/utils/DatasetText.cpp
+        include/llm/EmbeddingLayer.hpp
+        src/llm/EmbeddingLayer.cpp
+        src/gpu/Gpu_LLM.cu
+        include/gpu/Gpu_LLM.hpp
 )
 
 set(TEST
@@ -87,6 +91,7 @@ FetchContent_Declare(mimalloc GIT_REPOSITORY https://github.com/microsoft/mimall
 set(MI_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(MI_BUILD_SHARED OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(mimalloc)
+
 
 add_library(libNeurone ${CORE_SOURCE}
         include/utils/Logger.hpp)

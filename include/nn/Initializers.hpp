@@ -11,5 +11,6 @@ void init_weight_Glorot(Matrix &weight, Random &gen);
 void init_weight_He(Matrix &weight, Random &gen);
 void init_weight_He_CNN(Matrix &weight, Random &gen);
 void init_weight_Glorot_CNN(Matrix &weight, Random &gen, Index dimk);
+void init_weight_embedding(Matrix &weight, Random &gen);
 
 #endif //RESEAU_DE_NEURONES_FROM_SCRATCH_C_INITIALIZERS_HPP
