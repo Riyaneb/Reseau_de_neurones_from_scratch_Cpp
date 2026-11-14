@@ -3,6 +3,7 @@
 #include "cnn/ConvLayer.hpp"
 #include "cnn/FlattenLayer.hpp"
 #include "cnn/MaxPoolingLayer.hpp"
+#include "llm/EmbeddingLayer.hpp"
 #include "nn/Activations.hpp"
 #include "nn/SoftmaxLayer.hpp"
 
@@ -22,7 +23,7 @@ bool save(Network &net, std::string const &filename) {
         for ( auto it = layers.begin() ; it != layers.end() ; ++it) {
             std::string name = (*it)->layer_name();
 
-            if (name != "DenseLayer" && name != "Convolution" && name != "MaxPooling" && name != "Flatten" && name != "ReLU" && name != "Sigmoid" && name != "Tanh" && name != "Identity" && name != "Softmax") {
+            if (name != "DenseLayer" && name != "Convolution" && name != "MaxPooling" && name != "Embedding" && name != "Flatten" && name != "ReLU" && name != "Sigmoid" && name != "Tanh" && name != "Identity" && name != "Softmax") {
                 std::cerr << "Erreur dans la sauvegarde du réseau : " << name << "n'est pas défini dans le réseau" << std::endl;
                 exit(EXIT_FAILURE);
             }
@@ -34,7 +35,7 @@ bool save(Network &net, std::string const &filename) {
             }
             f << std::endl;
 
-            if (name == "DenseLayer" || name == "Convolution") {
+            if (name == "DenseLayer" || name == "Convolution" || name == "Embedding") {
                 auto param = (*it)->get_parameters();
                 Index nRowWeight = param[0].first->get_row();
                 Index nColWeight = param[0].first->get_column();
@@ -152,6 +153,39 @@ bool load(Network &net, std::string const &filename, bool in_gpu) {
                 Index c,h,w,dimKer;
                 f >> c >> h >> w >> dimKer;
                 net.add(std::make_unique<MaxPoolingLayer>(Shape(c,h,w), dimKer));
+            }
+            else if (name == "Embedding") {
+                Random gen;
+                Index v,e,c;
+                f >> v >> e >> c;
+                EmbeddingLayer layer(v,e,c,gen);
+
+                Index nRowWeight;
+                Index nColWeight;
+                Index nRowBiais;
+                Index nColBiais;
+
+                f >> nRowWeight >> nColWeight >> nRowBiais >> nColBiais;
+                auto params = layer.get_parameters();
+
+                if (nRowWeight != params[0].first->get_row() || nColWeight != params[0].first->get_column() || nRowBiais != params[1].first->get_row() || nColBiais != params[1].first->get_column()) {
+                    std::cerr << "Erreur : Les dimensions des paramètres de la couche " << name << " (Couche " << k << ") et ceux du fichier ne correspondent pas" << std::endl;
+                    return false;
+                }
+
+                for (Index i = 0; i < nRowWeight; i++) {
+                    for (Index j = 0; j < nColWeight; j++) {
+                        f >> params[0].first->get_value(i,j);
+                    }
+                }
+
+                for (Index i = 0; i < nRowBiais; i++) {
+                    for (Index j = 0; j < nColBiais; j++) {
+                        f >> params[1].first->get_value(i,j);
+                    }
+                }
+
+                net.add(std::make_unique<EmbeddingLayer>(layer));
             }
             else if (name == "Flatten") {
                 Index c,h,w;

@@ -5,5 +5,6 @@
 #include "gpu/GpuCudaCheck.hpp"
 
 void forward_embedding_gpu(Scalar* res, const Scalar* input, const Scalar* weight, const Scalar* pos, Index context_size, Index row_res, Index dimEmbedding);
+void backward_embedding_gpu(Scalar* gradW, Scalar* gradP, const Scalar* gradOut, const Scalar* input, Index gradOut_row, Index dimEmbedding, Index actual_context_size);
 
 #endif //RESEAUDENEURONEFROMSCRATCH_GPU_LLM_HPP
