@@ -6,5 +6,6 @@
 
 void forward_embedding_gpu(Scalar* res, const Scalar* input, const Scalar* weight, const Scalar* pos, Index context_size, Index row_res, Index dimEmbedding);
 void backward_embedding_gpu(Scalar* gradW, Scalar* gradP, const Scalar* gradOut, const Scalar* input, Index gradOut_row, Index dimEmbedding, Index actual_context_size);
+void forward_normalization_gpu(Scalar* result, const Scalar* input, Scalar* inv, Scalar* mean, const Scalar* weight, const Scalar* biais, Index input_row, Index dimEmbedding, Scalar epsilon);
 
 #endif //RESEAUDENEURONEFROMSCRATCH_GPU_LLM_HPP

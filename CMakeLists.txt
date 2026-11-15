@@ -67,6 +67,8 @@ set(CORE_SOURCE
         src/llm/EmbeddingLayer.cpp
         src/gpu/Gpu_LLM.cu
         include/gpu/Gpu_LLM.hpp
+        src/llm/NormLayer.cpp
+        include/llm/NormLayer.hpp
 )
 
 set(TEST
