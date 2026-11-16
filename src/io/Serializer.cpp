@@ -4,6 +4,7 @@
 #include "cnn/FlattenLayer.hpp"
 #include "cnn/MaxPoolingLayer.hpp"
 #include "llm/EmbeddingLayer.hpp"
+#include "llm/NormLayer.hpp"
 #include "nn/Activations.hpp"
 #include "nn/SoftmaxLayer.hpp"
 
@@ -23,7 +24,7 @@ bool save(Network &net, std::string const &filename) {
         for ( auto it = layers.begin() ; it != layers.end() ; ++it) {
             std::string name = (*it)->layer_name();
 
-            if (name != "DenseLayer" && name != "Convolution" && name != "MaxPooling" && name != "Embedding" && name != "Flatten" && name != "ReLU" && name != "Sigmoid" && name != "Tanh" && name != "Identity" && name != "Softmax") {
+            if (name != "DenseLayer" && name != "Convolution" && name != "MaxPooling" && name != "Embedding" && name != "NormalizationLayerLLM" && name != "Flatten" && name != "ReLU" && name != "Sigmoid" && name != "Tanh" && name != "Identity" && name != "Softmax" && name != "GeLU") {
                 std::cerr << "Erreur dans la sauvegarde du réseau : " << name << "n'est pas défini dans le réseau" << std::endl;
                 exit(EXIT_FAILURE);
             }
@@ -35,7 +36,7 @@ bool save(Network &net, std::string const &filename) {
             }
             f << std::endl;
 
-            if (name == "DenseLayer" || name == "Convolution" || name == "Embedding") {
+            if (name == "DenseLayer" || name == "Convolution" || name == "Embedding" || name == "NormalizationLayerLLM") {
                 auto param = (*it)->get_parameters();
                 Index nRowWeight = param[0].first->get_row();
                 Index nColWeight = param[0].first->get_column();
@@ -187,6 +188,38 @@ bool load(Network &net, std::string const &filename, bool in_gpu) {
 
                 net.add(std::make_unique<EmbeddingLayer>(layer));
             }
+            else if (name == "NormalizationLayerLLM") {
+                Index d;
+                f >> d;
+                NormLayer layer(d);
+
+                Index nRowWeight;
+                Index nColWeight;
+                Index nRowBiais;
+                Index nColBiais;
+
+                f >> nRowWeight >> nColWeight >> nRowBiais >> nColBiais;
+                auto params = layer.get_parameters();
+
+                if (nRowWeight != params[0].first->get_row() || nColWeight != params[0].first->get_column() || nRowBiais != params[1].first->get_row() || nColBiais != params[1].first->get_column()) {
+                    std::cerr << "Erreur : Les dimensions des paramètres de la couche " << name << " (Couche " << k << ") et ceux du fichier ne correspondent pas" << std::endl;
+                    return false;
+                }
+
+                for (Index i = 0; i < nRowWeight; i++) {
+                    for (Index j = 0; j < nColWeight; j++) {
+                        f >> params[0].first->get_value(i,j);
+                    }
+                }
+
+                for (Index i = 0; i < nRowBiais; i++) {
+                    for (Index j = 0; j < nColBiais; j++) {
+                        f >> params[1].first->get_value(i,j);
+                    }
+                }
+
+                net.add(std::make_unique<NormLayer>(layer));
+            }
             else if (name == "Flatten") {
                 Index c,h,w;
                 f >> c >> h >> w;
@@ -216,6 +249,11 @@ bool load(Network &net, std::string const &filename, bool in_gpu) {
                 Index rowA;
                 f >> rowA;
                 net.add(std::make_unique<SoftmaxLayer>(rowA));
+            }
+            else if (name == "GeLU") {
+                Index rowA;
+                f >> rowA;
+                net.add(std::make_unique<GeLU>(rowA));
             }
             else {
                 std::cerr << "Erreur dans le chargement du réseau : " << name << "n'est pas défini dans le réseau" << std::endl;

@@ -5,7 +5,7 @@
 
 class NormLayer : public Layer {
 public:
-    NormLayer(Index dim) : dimEmbedding(dim), weight(1,dim,1), biais(1,dim,0), gradWeight(1,dim,0), gradBiais(1,dim,0), mean(1,1), inv(1,1),input(1,1) {}
+    NormLayer(Index dim) : dimEmbedding(dim), weight(1,dim,1), biais(1,dim,0), gradWeight(1,dim,0), gradBiais(1,dim,0), mean(1,1), inv(1,1),input(1,1), NormX(1,1) {}
     Matrix forward(Matrix const &in) override;
     Matrix backward(Matrix const &gradientOut) override;
     void set_gradients_zero() override;
@@ -34,6 +34,7 @@ private:
     Matrix inv;
 
     Matrix input;
+    Matrix NormX;
     static constexpr Scalar epsilon = 1e-5f;
 };
 

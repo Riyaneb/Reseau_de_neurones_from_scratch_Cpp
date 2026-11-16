@@ -18,6 +18,20 @@ protected:
     Scalar derivate_fn(Scalar const &value) const override;
 };
 
+class GeLU : public ActivationLayer {
+public:
+    GeLU(Index nb) : ActivationLayer(nb) {}
+    Matrix forward(Matrix const &in) override;
+    Matrix backward(Matrix const &gradientOut) override;
+    std::unique_ptr<Layer> clone() const override;
+    std::string layer_name() const override {
+        return "GeLU";
+    }
+protected:
+    Scalar apply(Scalar value) const override;
+    Scalar derivate_fn(Scalar const &value) const override;
+};
+
 class Sigmoid : public ActivationLayer {
 public:
     Sigmoid(Index nb) : ActivationLayer(nb) {}

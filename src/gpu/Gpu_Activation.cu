@@ -1,6 +1,7 @@
 #include "gpu/GpuCudaCheck.hpp"
 #include "gpu/Memory_manage_matrix.hpp"
 #include "math/Matrix.hpp"
+#include <math_constants.h>
 #include <cassert>
 #include <iostream>
 
@@ -20,6 +21,11 @@ __global__ void forward_activation_gpu_kernel(const Scalar* A, Scalar* output, I
             case 3:
                 output[i] = A[i];
                 break;
+            case 4: {
+                Scalar x = A[i];
+                output[i] = x * 0.5f * (1.0f + erff(x/sqrtf(2)));
+                break;
+            }
         }
     }
 }
@@ -44,6 +50,11 @@ __global__ void backward_activation_gpu_kernel(const Scalar* A, const Scalar* gr
             case 3:
                 result[i] = gradientOut[i] * 1.0f;
                 break;
+            case 4: {
+                Scalar x = A[i];
+                result[i] = gradientOut[i] * (0.5f * (1 + erff(x/sqrtf(2))) + (x/sqrtf(2 * CUDART_PI_F)) * expf(-(x*x)/2.0f));
+                break;
+            }
         }
     }
 }
