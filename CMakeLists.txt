@@ -69,6 +69,8 @@ set(CORE_SOURCE
         include/gpu/Gpu_LLM.hpp
         src/llm/NormLayer.cpp
         include/llm/NormLayer.hpp
+        include/llm/AttentionLayer.hpp
+        src/llm/AttentionLayer.cpp
 )
 
 set(TEST

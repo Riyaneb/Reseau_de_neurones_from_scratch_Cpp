@@ -75,6 +75,38 @@ __global__ void backward_normalization_kernel(Scalar* gradX, const Scalar* gradi
     }
 }
 
+__global__ void split_head_kernel(Scalar* result, const Scalar* m, Index context, Index nb_head, Index m_row, Index m_col) {
+    Index i = blockIdx.x * blockDim.x + threadIdx.x;
+    Index j = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (i < m_row && j < m_col) {
+        Index nbF = i/context;
+        Index posF = i%context;
+        Index nHeadPerCol = m_col / nb_head;
+        Index nhead = j/ nHeadPerCol;
+        Index colHead = j % nHeadPerCol;
+
+        Index a = (nbF*nb_head + nhead)*context + posF;
+        result[a*nHeadPerCol + colHead] = m[i*m_col + j];
+    }
+}
+
+__global__ void merge_head_kernel(Scalar* result, const Scalar* m, Index context, Index nb_head, Index result_row, Index result_col) {
+    Index i = blockIdx.x * blockDim.x + threadIdx.x;
+    Index j = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (i < result_row && j < result_col) {
+        Index nbF = i/context;
+        Index posF = i%context;
+        Index nHeadPerCol = result_col / nb_head;
+        Index nhead = j/ nHeadPerCol;
+        Index colHead = j % nHeadPerCol;
+
+        Index a = (nbF*nb_head + nhead)*context + posF;
+        result[i*result_col + j] = m[a*nHeadPerCol + colHead];
+    }
+}
+
 void forward_embedding_gpu(Scalar* res, const Scalar* input, const Scalar* weight, const Scalar* pos, Index context_size, Index row_res, Index dimEmbedding) {
     Index g = 16;
     assert(context_size > 0 && dimEmbedding > 0 && "Erreur : context_size et dimEmbedding doit strictmeent être positif");
@@ -120,5 +152,24 @@ void backward_normalization_gpu(Scalar* gradX, const Scalar* gradientOut, const 
     backward_mean_kernel<<<blocs1, g1>>>(gradientOut, weight, normal, mean_gradNorm, mean_temp, grad_row, dimEmbedding);
     CUDA_CHECK(cudaGetLastError());
     backward_normalization_kernel<<<blocs2, threads2>>>(gradX, gradientOut, weight, normal, mean_gradNorm, mean_temp, inv, grad_row, dimEmbedding);
+    CUDA_CHECK(cudaGetLastError());
+}
+
+void split_head_gpu(Scalar* result, const Scalar* m, Index context, Index nb_head, Index m_row, Index m_col) {
+    Index g = 16;
+    assert(context > 0 && nb_head > 0 && "Erreur : context et nb_head doit strictmeent être positif");
+    assert((m_col + g - 1) / g <= 65535 && "Erreur : Le nombre de colonnes dépasse la capacité du calcul par gpu");
+    dim3 threads(g,g);
+    dim3 blocs((m_row + g - 1) / g, (m_col + g - 1) / g);
+    split_head_kernel<<<blocs, threads>>>(result, m, context, nb_head, m_row, m_col);
+    CUDA_CHECK(cudaGetLastError());
+}
+void merge_head_gpu(Scalar* result, const Scalar* m, Index context, Index nb_head, Index result_row, Index result_col) {
+    Index g = 16;
+    assert(context > 0 && nb_head > 0 && "Erreur : context et nb_head doit strictmeent être positif");
+    assert((result_col + g - 1) / g <= 65535 && "Erreur : Le nombre de colonnes dépasse la capacité du calcul par gpu");
+    dim3 threads(g,g);
+    dim3 blocs((result_row + g - 1) / g, (result_col + g - 1) / g);
+    merge_head_kernel<<<blocs, threads>>>(result, m, context, nb_head, result_row, result_col);
     CUDA_CHECK(cudaGetLastError());
 }
