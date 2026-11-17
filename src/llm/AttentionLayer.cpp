@@ -75,6 +75,7 @@ Matrix AttentionLayer::remade_matrix_split_head(Matrix const &m, Index context, 
     return result;
 }
 
+
 Matrix AttentionLayer::merge_head(Matrix const &m, Index context, Index nb_head) {
     assert(m.get_row()%(context*nb_head) == 0 && "Erreur : Dimension incorrecte");
     Matrix result(m.get_row() / nb_head,m.get_column() * nb_head, 0, m.get_in_gpu());
