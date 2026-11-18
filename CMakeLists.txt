@@ -71,6 +71,10 @@ set(CORE_SOURCE
         include/llm/NormLayer.hpp
         include/llm/AttentionLayer.hpp
         src/llm/AttentionLayer.cpp
+        include/llm/TransformerBloc.hpp
+        src/llm/TransformerBloc.cpp
+        src/llm/GPT.cpp
+        include/llm/GPT.hpp
 )
 
 set(TEST
@@ -186,6 +190,11 @@ add_executable(train_gpu_cpu_cnn apps/test_gpu_cpu_cnn.cpp)
 target_link_libraries(train_gpu_cpu_cnn PRIVATE libNeurone)
 target_compile_features(train_gpu_cpu_cnn PRIVATE cxx_std_17)
 set_target_properties(train_gpu_cpu_cnn PROPERTIES CXX_EXTENSIONS OFF)
+
+add_executable(miniGPT apps/miniGPTtest.cpp)
+target_link_libraries(miniGPT PRIVATE libNeurone)
+target_compile_features(miniGPT PRIVATE cxx_std_17)
+set_target_properties(miniGPT PROPERTIES CXX_EXTENSIONS OFF)
 
 if(MSVC)
     target_compile_options(libNeurone PRIVATE $<$<COMPILE_LANGUAGE:CXX>:/W4 /arch:AVX2>)

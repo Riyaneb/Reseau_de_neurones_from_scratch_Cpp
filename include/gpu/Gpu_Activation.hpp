@@ -5,7 +5,7 @@
 #include "gpu/GpuCudaCheck.hpp"
 
 void forward_activation_gpu(const Scalar* in, Scalar* result, Index choice, Index row, Index column);
-void backward_activation_gpu(const Scalar* output, const Scalar* gradientOut, Scalar* result, Index choice, Index row, Index column, Index context=0);
+void backward_activation_gpu(const Scalar* output, const Scalar* gradientOut, Scalar* result, Index choice, Index row, Index column);
 void forward_softmax_gpu(const Scalar* input, Scalar* output, Index row, Index column, Index context=0);
 void backward_softmax_gpu(const Scalar* gradientOut, const Scalar* output, Scalar* result, Index row, Index column);
 

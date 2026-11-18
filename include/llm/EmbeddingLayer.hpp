@@ -15,7 +15,7 @@ public:
     PairParameters get_parameters() override;
     std::unique_ptr<Layer> clone() const override;
 
-    void set_actual_context(Index n) {
+    void set_actual_context(Index n) override {
         assert(n <= context_max && n > 0 && "Erreur : Le doit être plus petit que la taille maximale de contexte et supérieur à 0");
         actual_context = n;
     }

@@ -6,6 +6,7 @@
 #include "llm/AttentionLayer.hpp"
 #include "llm/EmbeddingLayer.hpp"
 #include "llm/NormLayer.hpp"
+#include "llm/TransformerBloc.hpp"
 #include "nn/Activations.hpp"
 #include "nn/SoftmaxLayer.hpp"
 
@@ -25,7 +26,7 @@ bool save(Network &net, std::string const &filename) {
         for ( auto it = layers.begin() ; it != layers.end() ; ++it) {
             std::string name = (*it)->layer_name();
 
-            if (name != "DenseLayer" && name != "Convolution" && name != "MaxPooling" && name != "Embedding" && name != "NormalizationLayerLLM" && name != "AttentionLayer" && name != "Flatten" && name != "ReLU" && name != "Sigmoid" && name != "Tanh" && name != "Identity" && name != "Softmax" && name != "GeLU") {
+            if (name != "DenseLayer" && name != "Convolution" && name != "MaxPooling" && name != "Embedding" && name != "NormalizationLayerLLM" && name != "AttentionLayer" && name != "TransformerBloc" && name != "Flatten" && name != "ReLU" && name != "Sigmoid" && name != "Tanh" && name != "Identity" && name != "Softmax" && name != "GeLU") {
                 std::cerr << "Erreur dans la sauvegarde du réseau : " << name << "n'est pas défini dans le réseau" << std::endl;
                 exit(EXIT_FAILURE);
             }
@@ -37,7 +38,7 @@ bool save(Network &net, std::string const &filename) {
             }
             f << std::endl;
 
-            if (name == "DenseLayer" || name == "Convolution" || name == "Embedding" || name == "NormalizationLayerLLM" || name == "AttentionLayer") {
+            if (name == "DenseLayer" || name == "Convolution" || name == "Embedding" || name == "NormalizationLayerLLM" || name == "AttentionLayer" || name == "TransformerBloc") {
                 auto param = (*it)->get_parameters();
 
                 for (size_t p = 0; p < param.size(); p++) {
@@ -232,6 +233,35 @@ bool load(Network &net, std::string const &filename, bool in_gpu) {
                 }
 
                 net.add(std::make_unique<AttentionLayer>(layer));
+            }
+            else if (name == "TransformerBloc") {
+                Index d,h;
+                f >> d >> h;
+                Random gen;
+                TransformerBloc layer(d,h,gen);
+
+                auto params = layer.get_parameters();
+
+                for (size_t p = 0; p < params.size(); p++) {
+                    Index nRow, nCol;
+                    f >> nRow >> nCol;
+                    if (nRow != params[p].first->get_row() || nCol != params[p].first->get_column()) {
+                        std::cerr << "Erreur : Les dimensions des paramètres de la couche " << name << " (Couche " << k << ") et ceux du fichier ne correspondent pas" << std::endl;
+                        return false;
+                    }
+                }
+
+                for (size_t p = 0; p < params.size(); p++) {
+                    Index nRow = params[p].first->get_row();
+                    Index nCol = params[p].first->get_column();
+                    for (Index i = 0; i < nRow; i++) {
+                        for (Index j = 0; j < nCol; j++) {
+                            f >> params[p].first->get_value(i,j);
+                        }
+                    }
+                }
+
+                net.add(std::make_unique<TransformerBloc>(layer));
             }
             else if (name == "Flatten") {
                 Index c,h,w;

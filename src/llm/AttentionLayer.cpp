@@ -8,7 +8,7 @@
 #include "gpu/Gpu_Activation.hpp"
 #endif
 
-AttentionLayer::AttentionLayer(Index dim, Index nbH, Random &gen) : dimEmbedding(dim), nbHead(nbH), context_size(0), layerQ(dim,dim,gen,0), layerK(dim,dim,gen,0), layerV(dim,dim,gen,0), layerFinal(dim,dim,gen,0), Q(1,1), K(1,1), V(1,1), attentionMatrix(1,1){
+AttentionLayer::AttentionLayer(Index dim, Index nbH, Random &gen) : dimEmbedding(dim), nbHead(nbH), context_size(0), layerQ(dim,dim,gen,2), layerK(dim,dim,gen,2), layerV(dim,dim,gen,2), layerFinal(dim,dim,gen,2), Q(1,1), K(1,1), V(1,1), attentionMatrix(1,1){
     if (nbH <= 0 || dim % nbH != 0) {
         std::cerr<<"Erreur : La taille du vecteur doit être divisible par le nombre de tête"<<std::endl;
         exit(EXIT_FAILURE);

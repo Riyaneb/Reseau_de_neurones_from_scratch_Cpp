@@ -18,6 +18,7 @@ public:
     void to_cpu();
     void to_gpu();
     bool in_gpu();
+    void set_actual_context(Index n);
     std::vector<std::string> &get_names() {
         return layers_name;
     }
