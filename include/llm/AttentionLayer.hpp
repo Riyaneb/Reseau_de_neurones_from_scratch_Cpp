@@ -47,7 +47,8 @@ private:
 
     static Matrix remade_matrix_split_head(Matrix const &m, Index context, Index nb_head);
     static Matrix merge_head(Matrix const &m, Index context, Index nb_head);
-    static Matrix softmax_masked(Matrix const &score, Index context);
+    static Matrix forward_softmax_masked(Matrix const &score, Index context);
+    static Matrix backward_softmax_masked(Matrix const &grad,Matrix const &attentionMatrix);
 
 };
 

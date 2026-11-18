@@ -59,23 +59,27 @@ __global__ void backward_activation_gpu_kernel(const Scalar* A, const Scalar* gr
     }
 }
 
-__global__ void forward_softmax_gpu_kernel(const Scalar* A, Scalar* output, Index row, Index column) {
+__global__ void forward_softmax_gpu_kernel(const Scalar* A, Scalar* output, Index row, Index column, Index context) {
     auto i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i < row) {
+        Index limit = (context > 0) ? i % context + 1 : column;
         Scalar sum = 0;
         Scalar maxi = A[i*column];
-        for (int k = i*column; k < i*column+column; ++k) {
+        for (Index k = i*column; k < i*column+limit; ++k) {
             if (A[k] > maxi) {
                 maxi = A[k];
             }
         }
-        for (int k = i*column; k < i*column+column; ++k) {
+        for (Index k = i*column; k < i*column+limit; ++k) {
             Scalar fn = expf(A[k] - maxi);
             sum += fn;
             output[k] = fn;
         }
-        for (int k = i*column; k < i*column+column; ++k) {
+        for (Index k = i*column; k < i*column+limit; ++k) {
             output[k] /= sum;
+        }
+        for (Index k = i*column+limit; k < i*column+column; ++k) {
+            output[k] = 0;
         }
     }
 }
@@ -107,10 +111,10 @@ void backward_activation_gpu(const Scalar* output, const Scalar* gradientOut, Sc
     CUDA_CHECK(cudaGetLastError());
 }
 
-void forward_softmax_gpu(const Scalar* input, Scalar* output, Index row, Index column) {
+void forward_softmax_gpu(const Scalar* input, Scalar* output, Index row, Index column, Index context) {
     Index threads = 256;
     Index blocs = (row + threads - 1) / threads;
-    forward_softmax_gpu_kernel<<<blocs, threads>>>(input, output, row, column);
+    forward_softmax_gpu_kernel<<<blocs, threads>>>(input, output, row, column, context);
     CUDA_CHECK(cudaGetLastError());
 }
 
