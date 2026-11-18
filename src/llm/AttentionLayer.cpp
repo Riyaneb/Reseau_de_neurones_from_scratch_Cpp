@@ -101,3 +101,9 @@ Matrix AttentionLayer::merge_head(Matrix const &m, Index context, Index nb_head)
     }
     return result;
 }
+
+Matrix AttentionLayer::softmax_masked(Matrix const &score, Index context){
+    assert(context > 0 && "Erreur : La taille de context doit être supérieur à 0");
+    assert(context == score.get_column() && "Erreur : Le nombre de colonne du score ne correspond pas à la taille du contexte");
+    assert(score.get_row()  context)
+}

@@ -47,6 +47,8 @@ private:
 
     static Matrix remade_matrix_split_head(Matrix const &m, Index context, Index nb_head);
     static Matrix merge_head(Matrix const &m, Index context, Index nb_head);
+    static Matrix softmax_masked(Matrix const &score, Index context);
+
 };
 
 #endif //RESEAUDENEURONEFROMSCRATCH_ATTENTIONLAYER_HPP

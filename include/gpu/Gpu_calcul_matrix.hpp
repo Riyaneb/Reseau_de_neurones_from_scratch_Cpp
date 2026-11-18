@@ -4,6 +4,7 @@
 #include "gpu/GpuCudaCheck.hpp"
 
 void gpu_matrix_multiply(const Scalar* A, const Scalar* B, Scalar* C, Index a_row, Index a_col, Index b_row, Index b_col);
+void gpu_batch_matrix_multiply(const Scalar* A, const Scalar* B, Scalar* C, Index a_row, Index a_col, Index b_row, Index b_col, Index nbBloc, bool A_transp, bool B_transp, Scalar coef);
 
 void plusEqual_gpu(Scalar* ptrA, const Scalar* ptrB, Index c, Index r);
 void minusEqual_gpu(Scalar* ptrA, const Scalar* ptrB, Index c, Index r);
