@@ -196,6 +196,11 @@ target_link_libraries(miniGPT PRIVATE libNeurone)
 target_compile_features(miniGPT PRIVATE cxx_std_17)
 set_target_properties(miniGPT PROPERTIES CXX_EXTENSIONS OFF)
 
+add_executable(test_generation_gpt apps/test_generation_gpt.cpp)
+target_link_libraries(test_generation_gpt PRIVATE libNeurone)
+target_compile_features(test_generation_gpt PRIVATE cxx_std_17)
+set_target_properties(test_generation_gpt PROPERTIES CXX_EXTENSIONS OFF)
+
 if(MSVC)
     target_compile_options(libNeurone PRIVATE $<$<COMPILE_LANGUAGE:CXX>:/W4 /arch:AVX2>)
     add_compile_options(/utf-8)
