@@ -12,6 +12,7 @@ public:
     Scalar randomizeUniform(int a, int b);
     Scalar randomizeNormal(double mean, double stddev);
     Index randomizeInt(int a, int b);
+    std::size_t randomizeBigInt(std::size_t a, std::size_t b);
 private:
     std::mt19937 engine;
 };

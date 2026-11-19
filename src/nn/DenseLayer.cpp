@@ -2,12 +2,15 @@
 #include <cassert>
 
 DenseLayer::DenseLayer(Index nInput,Index nOutput, Random &gen, Index initChoice) : weight(Matrix(nInput,nOutput)), biais(Matrix(1,nOutput)), inNeural(Matrix(1,nInput)), gradWeight(nInput,nOutput,0), gradBiais(1,nOutput,0) {
-    assert((initChoice == 0 || initChoice == 1) && "Erreur : Valeur de initChoice incorrect (Glorot : 0 ; He : 1)");
+    assert((initChoice == 0 || initChoice == 1 || initChoice == 2) && "Erreur : Valeur de initChoice incorrect (Glorot : 0 ; He : 1 ; Embedding : 2)");
     if (initChoice==0) {
         init_weight_Glorot(weight, gen);
     }
     else if (initChoice==1) {
         init_weight_He(weight,gen);
+    }
+    else if (initChoice==2) {
+        init_weight_embedding(weight,gen);
     }
 }
 

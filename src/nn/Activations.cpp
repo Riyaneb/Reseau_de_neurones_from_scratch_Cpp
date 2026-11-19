@@ -74,6 +74,68 @@ Matrix ReLU::backward(Matrix const &gradientOut) {
     return result;
 }
 
+Matrix GeLU::forward(Matrix const &in) {
+    assert(in.get_column() == nbInput && "Erreur : Dimension dans le forward activationLayer Incorrecte");
+    input = in;
+    Matrix result(input.get_row(), input.get_column(),0,in.get_in_gpu());
+    if (in.get_in_gpu()) {
+        #ifdef USE_CUDA
+            forward_activation_gpu(in.get_gpu_ptr(), result.get_gpu_ptr(), 4, input.get_row(), input.get_column());
+        #else
+            std::cerr << "Erreur : CUDA non disponible" << std::endl;
+            exit(EXIT_FAILURE);
+        #endif
+    }
+    else {
+        Scalar sqrt_2 = std::sqrtf(2);
+        #pragma omp parallel for if(input.get_row() * input.get_column() > MIN_SIZE_OMP) schedule(dynamic,1)
+        for (Index i = 0; i < input.get_row(); i++) {
+            for (Index j = 0; j < input.get_column(); j++) {
+                Scalar temp = input.get_value(i,j);
+                result.get_value(i,j) = temp * 0.5f * (1 + std::erff(temp/sqrt_2));
+            }
+        }
+    }
+    return result;
+}
+
+Matrix GeLU::backward(Matrix const &gradientOut) {
+    assert(gradientOut.get_column() == input.get_column() && gradientOut.get_row() == input.get_row() && "Dimension de la matrice des gradients ne correspond pas au nombre de neurones de la couche précédente");
+    Matrix result(gradientOut.get_row(), gradientOut.get_column(),0, gradientOut.get_in_gpu());
+    if (gradientOut.get_in_gpu()) {
+        #ifdef USE_CUDA
+            backward_activation_gpu(input.get_gpu_ptr(), gradientOut.get_gpu_ptr(), result.get_gpu_ptr(),4, input.get_row(), input.get_column());
+        #else
+            std::cerr << "Erreur : CUDA non disponible" << std::endl;
+            exit(EXIT_FAILURE);
+        #endif
+    }
+    else {
+        Scalar sqrt_2 = std::sqrtf(2);
+        Scalar sqrt_2_pi = std::sqrtf(2 * std::acos(-1.0f));
+        #pragma omp parallel for if(input.get_row() * input.get_column() > MIN_SIZE_OMP) schedule(dynamic,1)
+        for (Index i = 0; i < input.get_row(); i++) {
+            for (Index j = 0; j < input.get_column(); j++) {
+                Scalar temp = input.get_value(i,j);
+                Scalar deriv = 0.5f * (1.0f+std::erff(temp/sqrt_2)) + (temp / sqrt_2_pi) * std::expf(-(temp * temp)/2.0f);
+                result.get_value(i,j) = gradientOut.get_value(i,j) * deriv;
+            }
+        }
+    }
+    return result;
+}
+
+Scalar GeLU::apply(Scalar value) const {
+    Scalar sqrt_2 = std::sqrtf(2);
+    return value * 0.5f * (1 + std::erff(value/sqrt_2));
+}
+
+Scalar GeLU::derivate_fn(Scalar const &value) const {
+    Scalar sqrt_2 = std::sqrtf(2);
+    Scalar sqrt_2_pi = std::sqrtf(2 * std::acos(-1.0f));
+    return 0.5f * (1.0f+std::erff(value/sqrt_2)) + (value / sqrt_2_pi) * std::expf(-(value * value)/2.0f);
+}
+
 Matrix Tanh::forward(Matrix const &in) {
     assert(in.get_column() == nbInput && "Erreur : Dimension dans le forward activationLayer Incorrecte");
     input = in;
@@ -246,3 +308,6 @@ std::unique_ptr<Layer> Identity::clone() const {
     return std::make_unique<Identity>(*this);
 }
 
+std::unique_ptr<Layer> GeLU::clone() const {
+    return std::make_unique<GeLU>(*this);
+}

@@ -18,6 +18,9 @@ class Adam : public Optimizer {
 public :
     Adam(PairParameters const &pair_parameters, Scalar a = 0.001, Scalar b1 = 0.9, Scalar b2 = 0.999, Scalar eps = 1e-8);
     void update_parameters(PairParameters &parameters) override;
+    void set_rate(Scalar r) {
+        rate = r;
+    }
     std::string optimiser_name() const {
         return "Adam";
     }

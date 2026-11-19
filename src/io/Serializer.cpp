@@ -3,6 +3,10 @@
 #include "cnn/ConvLayer.hpp"
 #include "cnn/FlattenLayer.hpp"
 #include "cnn/MaxPoolingLayer.hpp"
+#include "llm/AttentionLayer.hpp"
+#include "llm/EmbeddingLayer.hpp"
+#include "llm/NormLayer.hpp"
+#include "llm/TransformerBloc.hpp"
 #include "nn/Activations.hpp"
 #include "nn/SoftmaxLayer.hpp"
 
@@ -22,7 +26,7 @@ bool save(Network &net, std::string const &filename) {
         for ( auto it = layers.begin() ; it != layers.end() ; ++it) {
             std::string name = (*it)->layer_name();
 
-            if (name != "DenseLayer" && name != "Convolution" && name != "MaxPooling" && name != "Flatten" && name != "ReLU" && name != "Sigmoid" && name != "Tanh" && name != "Identity" && name != "Softmax") {
+            if (name != "DenseLayer" && name != "Convolution" && name != "MaxPooling" && name != "Embedding" && name != "NormalizationLayerLLM" && name != "AttentionLayer" && name != "TransformerBloc" && name != "Flatten" && name != "ReLU" && name != "Sigmoid" && name != "Tanh" && name != "Identity" && name != "Softmax" && name != "GeLU") {
                 std::cerr << "Erreur dans la sauvegarde du réseau : " << name << "n'est pas défini dans le réseau" << std::endl;
                 exit(EXIT_FAILURE);
             }
@@ -34,25 +38,24 @@ bool save(Network &net, std::string const &filename) {
             }
             f << std::endl;
 
-            if (name == "DenseLayer" || name == "Convolution") {
+            if (name == "DenseLayer" || name == "Convolution" || name == "Embedding" || name == "NormalizationLayerLLM" || name == "AttentionLayer" || name == "TransformerBloc") {
                 auto param = (*it)->get_parameters();
-                Index nRowWeight = param[0].first->get_row();
-                Index nColWeight = param[0].first->get_column();
 
-                Index nRowBiais = param[1].first->get_row();
-                Index nColBiais = param[1].first->get_column();
-
-                f << nRowWeight << " " << nColWeight << " " << nRowBiais << " " << nColBiais << std::endl;
-
-                for (Index i = 0; i < nRowWeight; i++) {
-                    for (Index j = 0; j < nColWeight; j++) {
-                        f << param[0].first->get_value(i,j) << " ";
+                for (size_t p = 0; p < param.size(); p++) {
+                    if (p > 0) {
+                        f << " ";
                     }
+                    f << param[p].first->get_row() << " " << param[p].first->get_column();
                 }
+                f << std::endl;
 
-                for (Index i = 0; i < nRowBiais; i++) {
-                    for (Index j = 0; j < nColBiais; j++) {
-                        f << param[1].first->get_value(i,j) << " ";
+                for (size_t p = 0; p < param.size(); p++) {
+                    Index nRow = param[p].first->get_row();
+                    Index nCol = param[p].first->get_column();
+                    for (Index i = 0; i < nRow; i++) {
+                        for (Index j = 0; j < nCol; j++) {
+                            f << param[p].first->get_value(i,j) << " ";
+                        }
                     }
                 }
             }
@@ -87,28 +90,24 @@ bool load(Network &net, std::string const &filename, bool in_gpu) {
                 f >> rowD >> colD;
                 DenseLayer layer(rowD, colD, gen);
 
-                Index nRowWeight;
-                Index nColWeight;
-                Index nRowBiais;
-                Index nColBiais;
-
-                f >> nRowWeight >> nColWeight >> nRowBiais >> nColBiais;
                 auto params = layer.get_parameters();
 
-                if (nRowWeight != params[0].first->get_row() || nColWeight != params[0].first->get_column() || nRowBiais != params[1].first->get_row() || nColBiais != params[1].first->get_column()) {
-                    std::cerr << "Erreur : Les dimensions des paramètres de la couche " << name << " (Couche " << k << ") et ceux du fichier ne correspondent pas" << std::endl;
-                    return false;
-                }
-
-                for (Index i = 0; i < nRowWeight; i++) {
-                    for (Index j = 0; j < nColWeight; j++) {
-                        f >> params[0].first->get_value(i,j);
+                for (size_t p = 0; p < params.size(); p++) {
+                    Index nRow, nCol;
+                    f >> nRow >> nCol;
+                    if (nRow != params[p].first->get_row() || nCol != params[p].first->get_column()) {
+                        std::cerr << "Erreur : Les dimensions des paramètres de la couche " << name << " (Couche " << k << ") et ceux du fichier ne correspondent pas" << std::endl;
+                        return false;
                     }
                 }
 
-                for (Index i = 0; i < nRowBiais; i++) {
-                    for (Index j = 0; j < nColBiais; j++) {
-                        f >> params[1].first->get_value(i,j);
+                for (size_t p = 0; p < params.size(); p++) {
+                    Index nRow = params[p].first->get_row();
+                    Index nCol = params[p].first->get_column();
+                    for (Index i = 0; i < nRow; i++) {
+                        for (Index j = 0; j < nCol; j++) {
+                            f >> params[p].first->get_value(i,j);
+                        }
                     }
                 }
 
@@ -121,28 +120,24 @@ bool load(Network &net, std::string const &filename, bool in_gpu) {
                 f >> c >> h >> w >> nKer >> dimKer;
                 ConvLayer layer(Shape(c,h,w), nKer, dimKer, gen);
 
-                Index nRowWeight;
-                Index nColWeight;
-                Index nRowBiais;
-                Index nColBiais;
-
-                f >> nRowWeight >> nColWeight >> nRowBiais >> nColBiais;
                 auto params = layer.get_parameters();
 
-                if (nRowWeight != params[0].first->get_row() || nColWeight != params[0].first->get_column() || nRowBiais != params[1].first->get_row() || nColBiais != params[1].first->get_column()) {
-                    std::cerr << "Erreur : Les dimensions des paramètres de la couche " << name << " (Couche " << k << ") et ceux du fichier ne correspondent pas" << std::endl;
-                    return false;
-                }
-
-                for (Index i = 0; i < nRowWeight; i++) {
-                    for (Index j = 0; j < nColWeight; j++) {
-                        f >> params[0].first->get_value(i,j);
+                for (size_t p = 0; p < params.size(); p++) {
+                    Index nRow, nCol;
+                    f >> nRow >> nCol;
+                    if (nRow != params[p].first->get_row() || nCol != params[p].first->get_column()) {
+                        std::cerr << "Erreur : Les dimensions des paramètres de la couche " << name << " (Couche " << k << ") et ceux du fichier ne correspondent pas" << std::endl;
+                        return false;
                     }
                 }
 
-                for (Index i = 0; i < nRowBiais; i++) {
-                    for (Index j = 0; j < nColBiais; j++) {
-                        f >> params[1].first->get_value(i,j);
+                for (size_t p = 0; p < params.size(); p++) {
+                    Index nRow = params[p].first->get_row();
+                    Index nCol = params[p].first->get_column();
+                    for (Index i = 0; i < nRow; i++) {
+                        for (Index j = 0; j < nCol; j++) {
+                            f >> params[p].first->get_value(i,j);
+                        }
                     }
                 }
 
@@ -152,6 +147,121 @@ bool load(Network &net, std::string const &filename, bool in_gpu) {
                 Index c,h,w,dimKer;
                 f >> c >> h >> w >> dimKer;
                 net.add(std::make_unique<MaxPoolingLayer>(Shape(c,h,w), dimKer));
+            }
+            else if (name == "Embedding") {
+                Random gen;
+                Index v,e,c;
+                f >> v >> e >> c;
+                EmbeddingLayer layer(v,e,c,gen);
+
+                auto params = layer.get_parameters();
+
+                for (size_t p = 0; p < params.size(); p++) {
+                    Index nRow, nCol;
+                    f >> nRow >> nCol;
+                    if (nRow != params[p].first->get_row() || nCol != params[p].first->get_column()) {
+                        std::cerr << "Erreur : Les dimensions des paramètres de la couche " << name << " (Couche " << k << ") et ceux du fichier ne correspondent pas" << std::endl;
+                        return false;
+                    }
+                }
+
+                for (size_t p = 0; p < params.size(); p++) {
+                    Index nRow = params[p].first->get_row();
+                    Index nCol = params[p].first->get_column();
+                    for (Index i = 0; i < nRow; i++) {
+                        for (Index j = 0; j < nCol; j++) {
+                            f >> params[p].first->get_value(i,j);
+                        }
+                    }
+                }
+
+                net.add(std::make_unique<EmbeddingLayer>(layer));
+            }
+            else if (name == "NormalizationLayerLLM") {
+                Index d;
+                f >> d;
+                NormLayer layer(d);
+
+                auto params = layer.get_parameters();
+
+                for (size_t p = 0; p < params.size(); p++) {
+                    Index nRow, nCol;
+                    f >> nRow >> nCol;
+                    if (nRow != params[p].first->get_row() || nCol != params[p].first->get_column()) {
+                        std::cerr << "Erreur : Les dimensions des paramètres de la couche " << name << " (Couche " << k << ") et ceux du fichier ne correspondent pas" << std::endl;
+                        return false;
+                    }
+                }
+
+                for (size_t p = 0; p < params.size(); p++) {
+                    Index nRow = params[p].first->get_row();
+                    Index nCol = params[p].first->get_column();
+                    for (Index i = 0; i < nRow; i++) {
+                        for (Index j = 0; j < nCol; j++) {
+                            f >> params[p].first->get_value(i,j);
+                        }
+                    }
+                }
+
+                net.add(std::make_unique<NormLayer>(layer));
+            }
+            else if (name == "AttentionLayer") {
+                Index d,h;
+                f >> d >> h;
+                Random gen;
+                AttentionLayer layer(d,h,gen);
+
+                auto params = layer.get_parameters();
+
+                for (size_t p = 0; p < params.size(); p++) {
+                    Index nRow, nCol;
+                    f >> nRow >> nCol;
+                    if (nRow != params[p].first->get_row() || nCol != params[p].first->get_column()) {
+                        std::cerr << "Erreur : Les dimensions des paramètres de la couche " << name << " (Couche " << k << ") et ceux du fichier ne correspondent pas" << std::endl;
+                        return false;
+                    }
+                }
+
+                for (size_t p = 0; p < params.size(); p++) {
+                    Index nRow = params[p].first->get_row();
+                    Index nCol = params[p].first->get_column();
+                    for (Index i = 0; i < nRow; i++) {
+                        for (Index j = 0; j < nCol; j++) {
+                            f >> params[p].first->get_value(i,j);
+                        }
+                    }
+                }
+
+                net.add(std::make_unique<AttentionLayer>(layer));
+            }
+            else if (name == "TransformerBloc") {
+                Index d,h;
+                f >> d >> h;
+                Random gen;
+                TransformerBloc layer(d,h,gen);
+
+                auto params = layer.get_parameters();
+
+                for (size_t p = 0; p < params.size(); p++) {
+                    Index nRow, nCol;
+                    f >> nRow >> nCol;
+                    if (nRow != params[p].first->get_row() || nCol != params[p].first->get_column()) {
+                        std::cerr << "Erreur : Les dimensions des paramètres de la couche " << name << " (Couche " << k << ") et ceux du fichier ne correspondent pas" << std::endl;
+                        return false;
+                    }
+                }
+
+                for (size_t p = 0; p < params.size(); p++) {
+                    Index nRow = params[p].first->get_row();
+                    Index nCol = params[p].first->get_column();
+                    for (Index i = 0; i < nRow; i++) {
+                        for (Index j = 0; j < nCol; j++) {
+                            f >> params[p].first->get_value(i,j);
+                        }
+                    }
+                }
+
+                net.add(std::make_unique<TransformerBloc>(layer));
             }
             else if (name == "Flatten") {
                 Index c,h,w;
@@ -182,6 +292,11 @@ bool load(Network &net, std::string const &filename, bool in_gpu) {
                 Index rowA;
                 f >> rowA;
                 net.add(std::make_unique<SoftmaxLayer>(rowA));
+            }
+            else if (name == "GeLU") {
+                Index rowA;
+                f >> rowA;
+                net.add(std::make_unique<GeLU>(rowA));
             }
             else {
                 std::cerr << "Erreur dans le chargement du réseau : " << name << "n'est pas défini dans le réseau" << std::endl;

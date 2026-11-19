@@ -16,11 +16,11 @@ public:
     Matrix(Matrix &&m) noexcept;
     ~Matrix();
 
-    inline Index get_row() const {
+    Index get_row() const {
         return row;
     }
 
-    inline Index get_column() const {
+    Index get_column() const {
         return column;
     }
 
@@ -67,6 +67,7 @@ public:
 
     static Matrix multiplyMatrixCPU(Matrix const &m1, Matrix const &m2);
     static Matrix multiplyMatrixGPU(Matrix const &m1, Matrix const &m2);
+    static Matrix multiplyMatrixBatch(Matrix const &m1, Matrix const &m2, Index nbBloc, bool m1_transpose, bool m2_transpose, Scalar coef=1);
 
     bool isSquare() const;
 
@@ -81,6 +82,7 @@ public:
     Scalar max_value_row(Index r) const;
 
     void fill(Scalar e);
+
 
 
 private:

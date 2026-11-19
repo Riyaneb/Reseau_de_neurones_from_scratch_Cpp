@@ -81,6 +81,7 @@ Matrix SoftmaxLayer::backward(Matrix const &gradientOut) {
     }
     return result;
 }
+
 std::unique_ptr<Layer> SoftmaxLayer::clone() const {
     return std::make_unique<SoftmaxLayer>(*this);
 }

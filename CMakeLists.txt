@@ -61,6 +61,20 @@ set(CORE_SOURCE
         include/gpu/Gpu_MaxPooling.hpp
         src/gpu/Gpu_Convolution.cu
         include/gpu/Gpu_Convolution.hpp
+        include/utils/DatasetText.hpp
+        src/utils/DatasetText.cpp
+        include/llm/EmbeddingLayer.hpp
+        src/llm/EmbeddingLayer.cpp
+        src/gpu/Gpu_LLM.cu
+        include/gpu/Gpu_LLM.hpp
+        src/llm/NormLayer.cpp
+        include/llm/NormLayer.hpp
+        include/llm/AttentionLayer.hpp
+        src/llm/AttentionLayer.cpp
+        include/llm/TransformerBloc.hpp
+        src/llm/TransformerBloc.cpp
+        src/llm/GPT.cpp
+        include/llm/GPT.hpp
 )
 
 set(TEST
@@ -86,11 +100,13 @@ set(MI_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(MI_BUILD_SHARED OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(mimalloc)
 
+
 add_library(libNeurone ${CORE_SOURCE}
         include/utils/Logger.hpp)
 target_compile_features(libNeurone PUBLIC cxx_std_17)
 target_include_directories(libNeurone PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_compile_definitions(libNeurone PUBLIC DATASET_DIR="${CMAKE_SOURCE_DIR}/data/dataset_images")
+target_compile_definitions(libNeurone PUBLIC DATASET_IMAGE_DIR="${CMAKE_SOURCE_DIR}/data/dataset_images")
+target_compile_definitions(libNeurone PUBLIC DATASET_TEXT_DIR="${CMAKE_SOURCE_DIR}/data/dataset_text")
 
 find_package(OpenMP REQUIRED)
 target_link_libraries(libNeurone PUBLIC OpenMP::OpenMP_CXX)
@@ -174,6 +190,16 @@ add_executable(train_gpu_cpu_cnn apps/test_gpu_cpu_cnn.cpp)
 target_link_libraries(train_gpu_cpu_cnn PRIVATE libNeurone)
 target_compile_features(train_gpu_cpu_cnn PRIVATE cxx_std_17)
 set_target_properties(train_gpu_cpu_cnn PROPERTIES CXX_EXTENSIONS OFF)
+
+add_executable(miniGPT apps/miniGPTtest.cpp)
+target_link_libraries(miniGPT PRIVATE libNeurone)
+target_compile_features(miniGPT PRIVATE cxx_std_17)
+set_target_properties(miniGPT PROPERTIES CXX_EXTENSIONS OFF)
+
+add_executable(test_generation_gpt apps/test_generation_gpt.cpp)
+target_link_libraries(test_generation_gpt PRIVATE libNeurone)
+target_compile_features(test_generation_gpt PRIVATE cxx_std_17)
+set_target_properties(test_generation_gpt PROPERTIES CXX_EXTENSIONS OFF)
 
 if(MSVC)
     target_compile_options(libNeurone PRIVATE $<$<COMPILE_LANGUAGE:CXX>:/W4 /arch:AVX2>)

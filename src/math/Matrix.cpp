@@ -136,6 +136,89 @@ Matrix hadamard(Matrix const &m1, Matrix const &m2) {
     return result;
 }
 
+Matrix Matrix::multiplyMatrixBatch(Matrix const &m1, Matrix const &m2, Index nbBloc, bool m1_transpose, bool m2_transpose, Scalar coef) {
+    if (m1_transpose && m2_transpose) {
+        std::cerr << "Erreur : Les matrices sont transposées" <<std::endl;
+        exit(EXIT_FAILURE);
+    }
+    assert(nbBloc > 0 && "Erreur : Le nombre de blocs doit être supérieur à 0");
+    assert(m1.row % nbBloc == 0 && m2.row % nbBloc == 0 && "Erreur : Le nombre de lignes doit être divisible par le nombre de blocs");
+    assert((m1_transpose ? m1.row / nbBloc : m1.column) == (m2_transpose ? m2.column : m2.row / nbBloc) && "Erreur : Dimension incorrecte pour la multiplication matricielle par blocs");
+    assert(m1.in_gpu == m2.in_gpu && "Erreur : Les matrices doivent être dans le même device");
+    Index nbRow;
+    if (!m1_transpose) {
+        nbRow = m1.row;
+    }
+    else {
+        nbRow = nbBloc*m1.column;
+    }
+
+    Index nbCol;
+    if (!m2_transpose) {
+        nbCol = m2.column;
+    }
+    else {
+        nbCol = m2.get_row() / nbBloc;
+    }
+
+    Matrix result(nbRow , nbCol, 0, m1.in_gpu);
+
+    Index commun;
+    if (m1_transpose) {
+        commun = m1.row / nbBloc;
+    }
+    else {
+        commun = m1.column;
+    }
+
+    if (result.in_gpu) {
+        #ifdef USE_CUDA
+            gpu_batch_matrix_multiply(m1.gpu_ptr,m2.gpu_ptr,result.gpu_ptr,m1.row,m1.column,m2.row,m2.column,nbBloc,m1_transpose,m2_transpose,coef);
+            return result;
+        #else
+            exit(EXIT_FAILURE);
+        #endif
+    }
+    else {
+        Scalar* res = result.get_ptr_matrix();
+        const Scalar* p1 = m1.get_ptr_matrix();
+        const Scalar* p2 = m2.get_ptr_matrix();
+
+        #pragma omp parallel for if(static_cast<long long>(m1.get_row()) * m1.get_column() * m2.get_column() > MIN_SIZE_OMP) schedule(static)
+        for (Index i = 0; i < result.row; ++i) {
+            Index bloc = i / (nbRow / nbBloc);
+            Index rowInBloc = i % (nbRow / nbBloc);
+            Index blocm1 = bloc * (m1.row / nbBloc);
+            Index blocm2 = bloc * (m2.row / nbBloc);
+
+            if (!m2_transpose) {
+                for (Index k = 0; k < commun; ++k) {
+                    Scalar val_m1;
+                    if (!m1_transpose) {
+                        val_m1 = p1[i * m1.get_column() + k]*coef;
+                    }
+                    else {
+                        val_m1 = p1[(blocm1+k) * m1.get_column() + rowInBloc]*coef;
+                    }
+                    for (Index j = 0; j < nbCol; ++j) {
+                        res[i*nbCol + j] += val_m1 * p2[(blocm2+k)*m2.column + j];
+                    }
+                }
+            }
+            else {
+                for (Index j = 0; j < nbCol; ++j) {
+                    Scalar sum = 0;
+                    for (Index k = 0; k < commun; ++k) {
+                        sum += p1[i*m1.column + k] * p2[(blocm2+j)*m2.column + k];
+                    }
+                    res[i*nbCol + j] = sum*coef;
+                }
+            }
+        }
+    }
+    return result;
+}
+
 Matrix& Matrix::operator*=(Scalar const &a) {
     if (in_gpu) {
         #ifdef USE_CUDA
@@ -352,7 +435,7 @@ Matrix Matrix::multiplyMatrixCPU(Matrix const &m1, Matrix const &m2) {
         }
     }
     else {
-        #pragma omp parallel for if(static_cast<long long>(m1.get_row() * m1.get_column() * m2.get_column()) > MIN_SIZE_OMP) schedule(dynamic,chunk)
+        #pragma omp parallel for if(static_cast<long long>(m1.get_row()) * m1.get_column() * m2.get_column() > MIN_SIZE_OMP) schedule(dynamic,chunk)
         for (Index i = 0; i < m1.get_row(); ++i) {
             Scalar* res_i = res + i * m2.get_column();
             for (Index k = 0; k < m1.get_column(); ++k) {

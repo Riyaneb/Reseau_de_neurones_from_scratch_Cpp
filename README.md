@@ -1,8 +1,8 @@
 # Réseau de neurones & Agent DQN / CNN from scratch en C++
 
-Un réseau de neurones, un agent qui apprend à jouer à Snake, ainsi qu'un réseau CNN codés en C++17, sans utiliser aucune bibliothèque externe (PyTorch, TensorFlow).
+Un réseau de neurones, un agent qui apprend à jouer à Snake, un réseau CNN ainsi qu'un LLM codés en C++17, sans utiliser aucune bibliothèque externe (PyTorch, TensorFlow).
 
-Le projet part du calcul le plus simple et va jusqu'à un agent qui apprend à jouer à Snake et à reconnaitre des images, tout seul, en passant par toutes les étapes intermédiaires. Chaque étape est vérifiée par des tests automatiques : plus de **580 tests** au total.
+Le projet part du calcul le plus simple et va jusqu'à un agent qui apprend à jouer à Snake, à reconnaitre des images et à écrire une histoire, tout seul, en passant par toutes les étapes intermédiaires. Chaque étape est vérifiée par des tests automatiques : plus de **711 tests** au total.
 
 Projet personnel fait pour comprendre comment fonctionne un réseau de neurones, plutôt que d'utiliser un outil qui fait tout à ma place.
 
@@ -10,20 +10,29 @@ Projet personnel fait pour comprendre comment fonctionne un réseau de neurones,
 
 ## Sommaire
 
-- [Résultats](#résultats)
-- [Démonstration](#démonstration)
 - [Comment ça marche : les maths derrière](#comment-ça-marche--les-maths-derrière)
   - [Une couche de neurones](#une-couche-de-neurones)
   - [Les fonctions d'activation](#les-fonctions-dactivation)
   - [Fonction de perte](#fonction-de-perte)
   - [Corriger les poids : la descente de gradient](#corriger-les-poids--la-descente-de-gradient)
   - [La rétropropagation](#la-rétropropagation)
-  - [Optimiseur Adam](#optimiseur-Adam)
-  - [Apprendre à jouer : léquation de Bellman](#apprendre-à-jouer--léquation-de-bellman)
+  - [Optimiseur Adam](#optimiseur-adam)
+  - [Apprendre à jouer : l'équation de Bellman](#apprendre-à-jouer--léquation-de-bellman)
   - [La convolution](#la-convolution)
   - [Les filtres et l'astuce im2col](#les-filtres-et-lastuce-im2col)
   - [Le max pooling](#le-max-pooling)
+  - [Le texte en nombres](#le-texte-en-nombres)
+  - [Comment entrainer le LLM](#comment-entrainer-le-llm)
+  - [L'embedding](#lembedding)
+  - [Couche de normalisation](#couche-de-normalisation)
+  - [La couche d'attention](#la-couche-dattention)
+  - [Les connexions résiduelles](#les-connexions-résiduelles)
+  - [Un Transformer](#un-transformer)
+  - [Génération du texte](#génération-du-texte)
 - [Architecture](#architecture)
+- [Agent DQN (Snake)](#agent-dqn-snake)
+  - [Résultats](#résultats)
+  - [Démonstration](#démonstration)
 - [Réseau convolutifs (CNN)](#réseau-convolutifs-cnn)
   - [Chiffres manuscrits (MNIST)](#chiffres-manuscrits-mnist)
   - [Radiographies pulmonaires (pneumonie)](#radiographies-pulmonaires-pneumonie)
@@ -31,6 +40,13 @@ Projet personnel fait pour comprendre comment fonctionne un réseau de neurones,
   - [Entraîner, tester, visualiser](#entraîner-tester-visualiser)
   - [Interface graphique](#interface-graphique)
   - [Limites et pistes du CNN](#limites-et-pistes-du-cnn)
+- [Petit LLM from scratch](#petit-llm-from-scratch)
+  - [Résultats du LLM](#résultats-du-llm)
+  - [Les données : LeCarnet](#les-données--lecarnet)
+  - [Le modèle](#le-modèle)
+  - [Les nouvelles classes](#les-nouvelles-classes)
+  - [Entraînement](#entraînement)
+  - [Limites et pistes du LLM](#limites-et-pistes-du-llm)
 - [Compilation et exécution](#compilation-et-exécution)
 - [Choix de conception](#choix-de-conception)
 - [Tests](#tests)
@@ -39,34 +55,6 @@ Projet personnel fait pour comprendre comment fonctionne un réseau de neurones,
 - [Structure du dépôt](#structure-du-dépôt)
 
 ---
-
-## Résultats
-
-| Ce qui a été testé | Résultat |
-|---|---|
-| Calcul des gradients | Vérifié par une méthode numérique, écart inférieur à 1e-7 |
-| Apprentissage du XOR, avec la méthode SGD | Erreur finale ≈ 0,0014 après 2000 essais |
-| Apprentissage du XOR, avec l'optimiseur Adam | Erreur finale ≈ **8,7e-06** après 5000 essais (environ 4 fois plus rapide) |
-| Agent qui apprend dans un couloir de 5 cases | Résolu à chaque fois, en 4 pas |
-| Agent qui apprend à jouer à Snake (grille 10×10) | Score moyen sur 200 parties : 18.505 (Pommes mangées) |
-| Série de tests | 580 tests, 0 échec |
-
-Exemple de graphique représentant l'évolution de l'agent sur le jeu snake
-
-![Graphique sur l'évolution de l'agent à snake](data/plot/training_snake_log_buffer_size.png)
-
-
-## Démonstration
-
-Une fois entraîné, l'agent joue tout seul, sans aide :
-
-```
-apps/agent_snake.cpp → charge le modèle entraîné et le fait jouer en temps réel dans le terminal
-```
-
-![GIF d'une démo de l'agent jouant à snake](docs/images/demo_snake_agent_gif.gif)
-
-L'agent apprend bien à se diriger vers la nourriture. Sa limite principale est qu'il ne voit que les cases juste à côté de sa tête : il ne peut donc pas prévoir qu'il va s'enfermer dans son propre corps une fois qu'il devient trop long.
 
 ## Comment ça marche : les maths derrière
 
@@ -132,6 +120,17 @@ Les quatre fonctions implémentées dans ce projet :
 
 Sa dérivée vaut 1 si $x > 0$ et 0 sinon.
 
+**GeLU** : Une variante de la fonction ReLU. Au lieu de couper net à zéro, elle adoucit la courbe de sorte à laisser passer quelques valeurs négatives. Sa courbe adoucie permet de rendre l'apprentissage plus régulier sur les réseaux très profonds comme les LLM.
+
+```math
+\mathrm{GELU}(x) = \frac{x}{2} \left( 1 + \mathrm{erf}\left( \frac{x}{\sqrt{2}} \right) \right)
+```
+
+```math
+\mathrm{GELU}'(x) = \frac{1}{2} \left( 1 + \mathrm{erf}\left( \frac{x}{\sqrt{2}} \right) \right) + \frac{x}{\sqrt{2\pi}} \, e^{-x^2/2}
+```
+
+
 **Sigmoïde** : Elle écrase toute valeur entre 0 et 1. A utiliser quand la sortie attendue est une probabilité ou un oui/non.
 
 ```math
@@ -192,7 +191,7 @@ L = -\frac{1}{N} \sum_{n=1}^{N} \sum_{k} \left[ y_{nk} \ln(p_{nk}) + (1 - y_{nk}
 ```math
 \frac{\partial L}{\partial p_{nk}} = \frac{1}{N} \cdot \frac{p_{nk} - y_{nk}}{p_{nk} \, (1 - p_{nk})}
 ```
- 
+
 
 **CCE Loss (Categorical Cross-Entropy)** : Elle s'utilise quand il y a 3 classes ou plus (Par exemple pour prédire si une image est un chat, un chien ou un oiseau).
 
@@ -223,7 +222,7 @@ Le signe moins fait qu'on descend au lieu de monter.
 
 ### La rétropropagation
 
- On sait calculer l'erreur à la sortie du réseau, mais comment savoir de combien chaque poids de la première couche est responsable de cette erreur, alors qu'il est séparé de la sortie par plusieurs autres couches ?
+On sait calculer l'erreur à la sortie du réseau, mais comment savoir de combien chaque poids de la première couche est responsable de cette erreur, alors qu'il est séparé de la sortie par plusieurs autres couches ?
 
 On applique la règle de dérivation en chaîne. La dérivée d'une composition de fonctions est le produit des dérivées de chaque étape. On part donc de l'erreur à la sortie et on la fait remonter couche par couche, en la multipliant à chaque fois par la dérivée locale de la couche traversée.
 
@@ -297,6 +296,19 @@ w \leftarrow w - \eta \cdot \frac{\hat{m}_t}{\sqrt{\hat{v}_t} + \epsilon}
 
 Avec les valeurs usuelles $\beta_1 = 0.9$, $\beta_2 = 0.999$ et $\epsilon = 10^{-8}$. $g_t$ est le gradient à l'étape $t$, et $t$ compte le nombre de mises à jour effectuées depuis le début.
 
+Il peut être utile de faire varier le taux d'apprentissage plutôt que de garder le même durant tout l'entrainement.
+
+***Dans un premier temps***, on le fait varier de manière linéaire. Au départ, les poids d'un réseau sont aléatoires et les moyenne d'Adam ne reposent encore que sur quelques gradients. On evite d'utiliser des pas qui pourrait être trop grand. Pour se faire, on fait monter le taux d'apprentissage de 0 à la valeur maximale que peut prendre le taux pendant les K premiers pas.
+
+***Dans un second temps***, on veut de grands pas pour avancer vite, puis de petits pas à la fin pour affiner sans sauter par-dessus le minimum. On le fait descendre du taux max au taux min avec la fonction cosinus.
+
+Au pas $s$, sur un entraînement de $N$ pas :
+
+```math
+\eta_s = \begin{cases} \eta_{max} \, \dfrac{s+1}{K} & \text{si } s < K \\[2mm] \eta_{min} + \dfrac{1}{2} (\eta_{max} - \eta_{min}) \left( 1 + \cos\left( \pi \, \dfrac{s - K}{N - K} \right) \right) & \text{sinon} \end{cases}
+```
+
+
 ### Apprendre à jouer : l'équation de Bellman
 
 Tout ce qui précède suppose qu'on connaît la bonne réponse pour chaque exemple. Pour XOR, c'est le cas, on sait que $0 \oplus 1 = 1$.
@@ -341,7 +353,7 @@ Passer une image directement dans les couches denses d'un MLP posent 3 problème
 
 **Le nombre de paramètres :** Pour une simple image de 200x200 pixels en couleurs, cela nécessite 120 000 poids pour chaque neurone de la première couche. Cela conpléxifie les calculs en plus de saturer la mémoire.
 
-**La structure :** Un réseau de neurones classique traite les pixels comme une suite de valeur. Il ne sait pas que 2 pixels côte à côte. Il ignore que deux pixels côte à côte forment une forme, un contour ou une texture. 
+**La structure :** Un réseau de neurones classique traite les pixels comme une suite de valeur. Il ne sait pas que 2 pixels côte à côte. Il ignore que deux pixels côte à côte forment une forme, un contour ou une texture.
 
 **Manque de généralisation :** Dans un réseau de neurones classique, si un élèment se trouve en haut à gauche de l'image puis se déplace en bas à droite, les pixels changent de place. Le réseau le considérera comme un objet totalement différent.
 
@@ -395,7 +407,7 @@ Cette dernière matrice est ensuite recollée dans la forme de l'image pour la r
 
 ### Le max pooling
 
-Après une convolution, on cherche à réduire la taille de l'image. On la découpe en carré de $p \times p$ pixels sans que ces carrés se chevauchent. 
+Après une convolution, on cherche à réduire la taille de l'image. On la découpe en carré de $p \times p$ pixels sans que ces carrés se chevauchent.
 
 ![Le max pooling 2×2](docs/images/cnn_max_pooling.png)
 
@@ -409,40 +421,271 @@ La couche **Flatten** ne calcule rien vue que les images sont déjà rangées à
 
 ![Réseau CNN exemple](docs/images/CNN-Pipeline.jpg)
 
+### Le texte en nombres
+
+Un LLM apprend une seule chose : deviner la suite d'un texte. On lui montre le début et il donne une probabilité pour chaque suite possible. Pour qu'un réseau puisse lire du texte, il faut d'abord le transformer en nombres.
+
+On découpe le texte en morceaux appelés ***tokens***. Chaque token différent reçoit un numéro associé. L'ensemble des tokens possibles forme ce qu'on appelle le vocabulaire de taille V. Il existe plusieurs façon de les découper avec leurs avantages et leurs inconvéniants :
+
+| Découpage | Exemple pour « chaton » | Taille du vocabulaire | Avantages et défauts |
+|---|---|---|---|
+| Par octet | c, h, a, t, o, n | 256 | Aucun mot inconnu possible, mais les textes deviennent très longs |
+| Par mot | chaton | des centaines de milliers | Textes courts, mais un mot jamais vu ne peut pas être écrit |
+| Par morceaux de mots (BPE) | chat, on | quelques dizaines de milliers | Le compromis utilisé par les grands modèles |
+
+### Comment entrainer le LLM
+
+On prend un morceau de texte aevc T tokens. La cible est tout simplement le même texte décalé d'un cran.
+
+| position | 0 | 1 | 2 | 3 |
+|---|---|---|---|---|
+| ce que le modèle a vu | c | c h | c h a | c h a t |
+| ce qu'il doit deviner | h | a | t | o |
+
+
+### L'embedding
+
+Chaque token est un numéro, mais ce numéro seul ne nous permet de faire des liens entre les tokens. Par exemple les token "chien" et "chat" ont un lien proche entre eux contrairement aux tokens "argent" et "bleu". On remplace donc chaque token par un vecteur de d nombres appris pendant l'entrainement. Les tokens qui s'utilisent de la même façon comme "chien" et "chat" finissent par avoir des vecteurs proches. Chaque valeurs de token à un vecteur associé, auquel addition un autre vecteur de sorte à préserver l'ordre dans une phrase. Sans ça, "le chat mange la souris" et "la souris mange le chat" seraient vus pareil.
+
+Soit $E_t$, le vecteur du token t :
+
+```math
+E_t = \mathrm{Tok}[x_t] + \mathrm{Pos}[t]
+```
+Dans la rétropropagation, le gradient de la ligne $t$ s'ajoute à la ligne $x_t$ de $\mathrm{Tok}$ et à la ligne $t$ de $\mathrm{Pos}$. Si le même token apparaît plusieurs fois, sa ligne reçoit la somme de tous ses gradients.
+
+### Couche de normalisation
+
+En empilant beaucoup de couches, les valeurs peuvent grossir ou rétrécir de couche en couche, ce qui rend l'apprentissage instable. La LayerNorm recentre chaque vecteur, ligne par ligne, pour que ses d colonnes aient une moyenne de 0 et un écart-type de 1 :
+
+```math
+\mu = \frac{1}{d} \sum_{j=1}^{d} x_j
+\qquad
+\sigma^2 = \frac{1}{d} \sum_{j=1}^{d} (x_j - \mu)^2
+\qquad
+\hat{x}_j = \frac{x_j - \mu}{\sqrt{\sigma^2 + \varepsilon}}
+```
+
+Le petit $\varepsilon$ évite de diviser par zéro. Comme imposer exactement une de moyenne 0 et un écart-type 1 limiterait le réseau, on ajoute une échelle $\gamma$ et un décalage $\beta$ appris :
+
+```math
+y_j = \gamma_j \, \hat{x}_j + \beta_j
+```
+
+Chaque ligne est normalisée seule, donc le résultat ne dépend pas des autres exemples du lot.
+
+Pour la rétropropagation, on note g le gradient reçu et $\hat{g} = g \odot \gamma$ :
+
+```math
+\frac{\partial L}{\partial \gamma} = \sum_{\text{lignes}} g \odot \hat{x}
+\qquad
+\frac{\partial L}{\partial \beta} = \sum_{\text{lignes}} g
+```
+
+```math
+\frac{\partial L}{\partial x} = \frac{1}{\sqrt{\sigma^2 + \varepsilon}} \left( \hat{g} - \mathrm{moy}(\hat{g}) - \hat{x} \odot \mathrm{moy}(\hat{g} \odot \hat{x}) \right)
+```
+
+### La couche d'attention
+
+Le problème d'une couche dense est qu'elle traite chaque token individuellement. Elle ne sait pas ce qu'il y a avant. Or pour deviner la suite "Le chat que j'ai vu hier soir dans le jardin est…", il faut retrouver chat qui est loin dans la phrase et ignorer les autres mots. L'attention permet à chaque token de choisir quels tokens regarder.
+
+Chaque token fabrique 3 vecteurs avec 3 couche denses :
+
+- une **question** Q : « qu'est-ce que je cherche ? » ;
+- une **clé** K : « qu'est-ce que je contiens ? » ;
+- une **valeur** V : « qu'est-ce que je transmets si on me choisit ? ».
+
+Le score S entre le token a et b est le produit scalaire de la question de a avec la clé de b. Plus il est grand, plus les vecteurs vont dans la même direction.
+
+```math
+S = \frac{Q K^{T}}{\sqrt{d_k}}
+```
+
+Des scores trop grands rendraient le softmax presque binaire (un 1 et des 0) et ses gradients presque nuls. La division garde les scores à une bonne taille.
+
+Attention, un modèle qui écrit du texte ne doit pas lire la suite pour deviner, sinon il n'apprendrait pas. Le token t n'a le droit de regarder que les tokens de 0 à t. On applique donc le softmax seulement sur les colonnes autorisées :
+
+```math
+A_{tj} = \begin{cases} \dfrac{e^{S_{tj}}}{\sum_{k \le t} e^{S_{tk}}} & \text{si } j \le t \\[2mm] 0 & \text{si } j > t \end{cases}
+```
+
+Chaque token reçoit enfin la moyenne des valeurs des tokens qu'il regarde, pondérée par ces poids :
+
+```math
+O = A V
+```
+
+O est ensuite transmis aux autres couches.
+
+Pour la rétropropagation. On utilise la règle du produit de matrices suivante : $C = AB$ donne $\frac{\partial L}{\partial A} = \frac{\partial L}{\partial C} B^{T}$ et $\frac{\partial L}{\partial B} = A^{T} \frac{\partial L}{\partial C}$
+
+```math
+\frac{\partial L}{\partial A} = \frac{\partial L}{\partial O} V^{T}
+\qquad
+\frac{\partial L}{\partial V} = A^{T} \frac{\partial L}{\partial O}
+```
+
+Une seule attention donne, pour chaque token, un seul mélange. Mais un token a souvent besoin de plusieurs informations à la fois : le mot en cours, le sujet de la phrase, la dernière ponctuation etc…
+
+On découpe les d colonnes de Q, K et V en H groupes de g = d/H. On les appelle des têtes. Chaque tête fait son propre calcul d'attention et peut donc se spécialiser. Les sorties des têtes sont recollées côte à côte, puis mélangées par une dernière couche dense.
+
+Le calcul total est le même qu'avec une seule grande tête. On ne fait que découper les colonnes.
+
+### Les connexions résiduelles
+
+Quand on empile beaucoup de couches, le gradient est multiplié à chaque couche par une dérivée locale. S'il traverse des dizaines de couches, il peut devenir minuscule, et les premières couches n'apprennent presque plus rien. La connexion résiduelle ajoute l'entrée d'une couche à sa sortie.
+
+```math
+Y = X + R(X)
+```
+
+La couche n'apprend donc plus une transformation complète, seulement une **correction** $R(X)$ à ajouter. Et dans la rétropropagation :
+
+```math
+\frac{\partial L}{\partial X} = \frac{\partial L}{\partial Y} + \frac{\partial L}{\partial Y} \cdot \frac{\partial R}{\partial X}
+```
+
+### Un Transformer
+
+Un Transformer assemble tout ce qui précède en deux moitiés, chacune avec sa connexion résiduelle :
+
+```math
+X_1 = X + \mathrm{MultiTête}(\mathrm{LN}_1(X))
+```
+
+```math
+Y = X_1 + W_2 \, \mathrm{GELU}(W_1 \, \mathrm{LN}_2(X_1) + b_1) + b_2
+```
+
+- La première moitié fait communiquer les tokens entre eux.
+- La deuxième moitié liasse chaque token réfléchir seul avec ce qu'il vient d'apprendre.
+
+La LayerNorm est appliquée avant chaque moitié, et c'est l'entrée non normalisée qui est ajoutée par le résiduel.
+
+L'entrée et la sortie d'un Transformer ont la même taille, ce qui permet d'en empiler autant qu'on veut.
+
+Ainsi un LLM se construit de la manière suivante :
+
+```
+tokens → Embedding → Transformer 1 → Transformer 2 → … → Transformer N → LayerNorm → Dense (d → V) → Softmax
+```
+
+### Génération du texte
+
+Une fois entrainé, le modèle peut écrire. On lui donne un début de texte, il calcule la probabilités du token suivant, il tire au hasard selon les probabilités et il l'ajoute au texte puis recommence. Si le texte est plus long que le contexte maximal C, on ne garde que les C premiers tokens.
+
+On peut régler le hasard en divisant les scores s par une temperature y avant le softmax :
+
+```math
+p_i = \frac{e^{s_i / y}}{\sum_j e^{s_j / y}}
+```
+
+- $y < 1$ creuse les écarts : le modèle choisit presque toujours le token le plus probable. Le texte est prudent, mais il a tendance à se répéter.
+- $y = 1$ garde les probabilités apprises.
+- $y > 1$ aplatit les écarts : le texte devient plus original, puis incohérent si y est trop grand.
+
+Prendre toujours le token le plus probable donne souvent des boucles du type "et il joua et il joua et il joua"
+
 ## Architecture
 
 
 
 ```
-Matrix (Un tableau de nombres, stocké de façon optimisé)
+Matrix (Un tableau de nombres, stocké de façon optimisé, sur le processeur ou sur la carte graphique)
    │
    ├── Layer (une couche du réseau)
-   │     ├── DenseLayer          — La couche qui fait le calcul : y = x·W + b
-   │     └── ActivationLayer     — Ajoute de la non-linéarité au réseau
-   │           ├── ReLU
-   │           ├── Sigmoide
-   │           ├── Tanh
-   │           └── Identity
+   │     ├── DenseLayer          : La couche qui fait le calcul : y = x·W + b
+   │     ├── ActivationLayer     : Ajoute de la non-linéarité au réseau
+   │     │     ├── ReLU
+   │     │     ├── GeLU
+   │     │     ├── Sigmoid
+   │     │     ├── Tanh
+   │     │     └── Identity
+   │     ├── SoftmaxLayer        : Transforme les sorties en probabilités (somme égale à 1)
+   │     ├── ConvLayer           : Convolution : fait glisser des filtres sur l'image (via im2col)
+   │     ├── MaxPoolingLayer     : Réduit l'image en gardant la plus grande valeur de chaque carré
+   │     ├── FlattenLayer        : Passe d'une image à une simple liste de nombres
+   │     ├── EmbeddingLayer      : Transforme chaque octet en vecteur, et ajoute le vecteur de sa position
+   │     ├── NormLayer           : LayerNorm, recentre chaque ligne (moyenne 0, écart-type 1)
+   │     ├── AttentionLayer      : Attention à plusieurs têtes avec masque (les lettres échangent des informations)
+   │     └── TransformerBloc     : LayerNorm, attention, LayerNorm, Dense, GELU, Dense, avec les deux résiduels
    │
-   ├── Network                   — Stocke plusieurs couches, calcule dans les deux sens
+   ├── Network                   : Stocke plusieurs couches, calcule dans les deux sens
    │
    ├── Loss
-   │     └── QuadraLoss          — Mesure l'écart entre la prédiction et la bonne réponse à viser
+   │     ├── QuadraLoss          : Erreur quadratique, mesure l'écart entre la prédiction et la bonne réponse
+   │     ├── BCE                 : Perte pour un choix entre 2 classes
+   │     └── CCE                 : Perte pour 3 classes ou plus
    │
    ├── Optimizer
-   │     ├── SGD                 — Méthode simple de mise à jour des poids
-   │     └── Adam                — Méthode plus rapide et plus stable
+   │     ├── SGD                 : Méthode simple de mise à jour des poids
+   │     └── Adam                : Méthode plus rapide et plus stable
    │
-   └── Serializer                — Sauvegarde et recharge les poids d'un réseau entraîné
+   ├── Initializers              : Choisit les poids de départ (Glorot, He, loi normale d'écart-type 0,02)
+   ├── Random                    : Générateur de nombres aléatoires du projet
+   └── Serializer                : Sauvegarde et recharge les poids d'un réseau entraîné
+
+GPT(...)                         : Construit le LLM complet (Embedding, N Transformer, LayerNorm, Dense, Softmax)
+Shape                            : Décrit une image : nombre de canaux, hauteur, largeur
 
 Environment (Un monde dans lequel un agent peut agir)
-   ├── CorridorEnv                — Un couloir simple pour vérifier que l'agent marche
-   └── SnakeEnv                   — Le jeu Snake
+   ├── CorridorEnv               : Un couloir simple pour vérifier que l'agent marche
+   └── SnakeEnv                  : Le jeu Snake
 
-ReplayBuffer                     — Garde en mémoire les dernières situations vécues par l'agent
-EpsilonSchedule                  — Dit à l'agent s'il explore au hasard ou non
-DQNAgent                         — Assemble tout pour apprendre à jouer
+Transition                       : Une situation vécue par l'agent (état, action, récompense, état suivant)
+ReplayBuffer                     : Garde en mémoire les dernières situations vécues par l'agent
+EpsilonSchedule                  : Dit à l'agent s'il explore au hasard ou non
+DQNAgent                         : Assemble tout pour apprendre à jouer
+
+DatasetImage                     : Charge un jeu d'images et leurs étiquettes et les mélange
+DatasetText                      : Charge un fichier texte en octets et découpe des fenêtres
+PredictionCnn                    : Prépare ce que l'interface affiche : la prédiction et les probabilités
+
+gpu (calcul sur la carte graphique avec CUDA)
+   ├── Gpu_calcul_matrix         : Produits de matrices (cuBLAS), produits par lots et opérations case par case
+   ├── Gpu_Activation            : Fonctions d'activation et softmax (avec le masque de l'attention)
+   ├── Gpu_Convolution           : im2col et son inverse pour la convolution
+   ├── Gpu_MaxPooling            : Max pooling dans les deux sens
+   ├── Gpu_Loss                  : Calcul des pertes et de leurs gradients
+   ├── Gpu_Optimizer             : Mise à jour des poids avec Adam
+   ├── Gpu_LLM                   : Embedding, LayerNorm, découpage et regroupement des têtes d'attention
+   └── Memory_manage_matrix      : Réserve et libère la mémoire de la carte
+
+Timer                            : Mesure les temps d'exécution
+Logger                           : Affichage et suivi des entraînements (configuration, scores, journal)
 ```
+
+## Agent DQN (Snake)
+
+### Résultats
+
+| Ce qui a été testé | Résultat |
+|---|---|
+| Calcul des gradients | Vérifié par une méthode numérique, écart inférieur à 1e-7 |
+| Apprentissage du XOR, avec la méthode SGD | Erreur finale ≈ 0,0014 après 2000 essais |
+| Apprentissage du XOR, avec l'optimiseur Adam | Erreur finale ≈ **8,7e-06** après 5000 essais (environ 4 fois plus rapide) |
+| Agent qui apprend dans un couloir de 5 cases | Résolu à chaque fois, en 4 pas |
+| Agent qui apprend à jouer à Snake (grille 10×10) | Score moyen sur 200 parties : 18.505 (Pommes mangées) |
+| Série de tests | 580 tests, 0 échec |
+
+Exemple de graphique représentant l'évolution de l'agent sur le jeu snake
+
+![Graphique sur l'évolution de l'agent à snake](data/plot/training_snake_log_buffer_size.png)
+
+
+### Démonstration
+
+Une fois entraîné, l'agent joue tout seul, sans aide :
+
+```
+apps/agent_snake.cpp → charge le modèle entraîné et le fait jouer en temps réel dans le terminal
+```
+
+![GIF d'une démo de l'agent jouant à snake](docs/images/demo_snake_agent_gif.gif)
+
+L'agent apprend bien à se diriger vers la nourriture. Sa limite principale est qu'il ne voit que les cases juste à côté de sa tête : il ne peut donc pas prévoir qu'il va s'enfermer dans son propre corps une fois qu'il devient trop long.
+
 ## Réseau convolutifs (CNN)
 
 Après l'agent DQN, j'ai ajouté des classes permettant de constuire un réseau CNN permettant de travailler sur des images. J'ai pu traiter deux problèmes dans ce projet : reconnaître des chiffres écrits à la main (MNIST), puis détecter une pneumonie sur des radiographies du thorax.
@@ -598,6 +841,133 @@ Pistes :
 - Sauvegarder la forme du réseau dans le fichier du modèle, pour ne plus la réécrire dans chaque programme ;
 - Choisir le réseau de l'interface graphique selon le jeu de données ;
 
+## Petit LLM from scratch
+
+La dernière partie du projet. Un petit llm construit sur l'architecture Transformer qui apprend à écrire des histoire en français, lettre par lettre. Il réutilise les mêmes briques de base que le DQN et le CNN. On ajoute à ces couches : L'embedding, la couche de normalisation, la fonction d'activation GeLU, l'attention à plusieurs têtes et le Transformer. Tout l'entraînement tourne sur la carte graphique avec CUDA.
+
+Le fonctionnement de chaque couche est expliqué dans [Comment ça marche](#le-texte-en-nombres).
+
+### Résultats du LLM
+
+| Mesure | Valeur |
+|---|---|
+| Nombre de paramètres | **25 613 568** (≈ 25,6 M) |
+| Données vues pendant l'entraînement | 120 000 tours × 4 096 lettres ≈ 491 millions de lettres (≈ 29 % du jeu d'entraînement) |
+| Perte au départ | 5,70 |
+| Perte de validation finale | **0,344** (≈ 0,5 bit par lettre) |
+| Perte d'entraînement finale | 0,340 |
+| Temps d'entraînement | **≈ 7 h 03** (25 379 s, soit ≈ 0,21 s par tour) sur mon PC portable en Release avec RTX 4070 Mobile et Intel Core Ultra 7 155H |
+
+Exemple de texte écrit par le modèle (température 0,8). Le début vient du fichier de test de LeCarnet, qui contient des histoires coupées au milieu d'une phrase :
+
+**Début donné au modèle :**
+
+```
+Il était une fois un petit lapin nommé Lulu. Lulu adorait jouer dans le jardin avec ses amis. Un jour, il trouva un vieux tuyau dans le jardin. Intrigué, il décida de viser un trou dans le sol avec le tuyau pour voir s'il pouvait l'utiliser comme un toboggan. Mais quand il essaya de glisser à travers le tuyau, il se retrouva coincé ! Lulu
+```
+
+**Suite écrite par le modèle, lettre par lettre, jusqu'à ce qu'il décide lui-même de s'arrêter :**
+
+```
+était triste et commença à pleurer. Soudain, il entendit une voix douce : « Ne t'inquiète pas, Lulu. Je vais t'aider à glisser. » C'était la sorcière qui parlait aux animaux de la forêt. Ensemble, ils trouvèrent un moyen de libérer Lulu. La sorcière, surprise par ce geste gentil, accepta de les aider. Ensemble, ils trouvèrent une feuille et Lulu put repartir en sécurité dans sa maison. Lulu apprit que parfois, il vaut mieux demander de l'aide plutôt que de tout faire seul. Depuis ce jour, Lulu n'hésitait plus à demander de l'aide quand il en aurait besoin. Il comprit que l'équilibre est une différence et que tout le monde dans la forêt pouvait être une force. Lulu apprit que la gentillesse et l'aide aux autres étaient plus importantes que de s'amuser tout seul.
+```
+
+Le modèle écrit en français correct, garde la structure du texte avec le nom des personnages, le problème, la morale, et termine l'histoire de lui-même. Le modèle à des limites. Par exemple la sorcière arrive sans explication, certaines phrases n'ont pas de sens ("l'équilibre est une différence"), et la morale est répétée. Il maîtrise bien la forme du texte, mais plus l'histoire est longue, moins il maitirse la logique.
+
+### Les données : LeCarnet
+
+Le modèle est entraîné sur [LeCarnet](https://huggingface.co/datasets/MaxLSB/LeCarnet) (licence ODC-BY). Il y environ 2 millions de courtes histoires pour enfants en français, écrites avec un vocabulaire simple par un grand modèle de langage sur le modèle du jeu anglais TinyStories.
+
+Dans ce projet, le texte est découpé en octet. Les lettres accentuées comme "é" prennent deux octets en UTF-8. Le modèle doit donc apprendre à écrire les octets dans le bonne ordre.
+
+`DatasetText::get_batch` tire au hasard 16 positions dans le texte et prend à chacune 256 octets pour l'entrée x et les mêmes 256 octets décalés d'un cran pour la cible y :
+
+| position | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 |
+|---|---|---|---|---|---|---|---|---|
+| x (entrée) | I | l | ␣ | é | t | a | i | t |
+| y (à deviner) | l | ␣ | é | t | a | i | t | ␣ |
+
+On note B le nombre de lot et T la taille de la fenêtre. x est rangée dans une matrice de $B \cdot T$ lignes et de 1 colonne. Chaque ligne représente une lettre auquel on lui associe sa valeur en octet. Si une lettre fait 2 octets par exemple, elle prendra 2 lignes dans la matrice. `get_batch_in_order` découpe le texte de validation dans l'ordre, pour mesurer la perte toujours sur les mêmes lots.
+
+### Le modèle
+
+| Réglage | Valeur |
+|---|---|
+| Vocabulaire V | 256 octets |
+| Taille des vecteurs d | 512 |
+| Nombre de blocs Transformer | 8 |
+| Têtes d'attention H | 8 (64 colonnes par tête) |
+| Couche cachée des blocs | 2 048 (4 x d) |
+| Contexte T | 256 lettres |
+
+| Étape | Couche | Taille de la sortie (pour un lot de $B \cdot T$ lettres) | Poids |
+|---|---|---|---|
+| 1 | Embedding (octets + positions) | $B \cdot T$ x 512 | 262 144 |
+| 2 | 8 × TransformerBloc | $B \cdot T$ x 512 | 8 x 3 152 384 = 25 219 072 |
+| 3 | LayerNorm finale | $B \cdot T$ x 512 | 1 024 |
+| 4 | Couche dense | $B \cdot T$ x 256 | 131 328 |
+| 5 | Softmax | 256 probabilités par lettre | 0 |
+
+Dans chaque bloc, environ deux tiers des poids sont dans les deux couches denses ($512 \to 2048 \to 512$), et un tiers dans l'attention.
+
+### Les nouvelles classes
+
+```
+Layer (une couche du réseau)
+   ├── EmbeddingLayer        : Transforme chaque octet en vecteur, et ajoute le vecteur de sa position
+   ├── NormLayer             : LayerNorm, recentre chaque ligne (moyenne 0, écart-type 1)
+   ├── GeLU                  : Fonction d'activation des LLM
+   ├── AttentionLayer        : Attention à plusieurs têtes avec masque (les lettres échangent des informations)
+   └── TransformerBloc       : LayerNorm, attention, LayerNorm, Dense, GELU, Dense, avec les deux résiduels
+ 
+GPT(...)                     : Construit le réseau complet (Embedding, N Transformer, LayerNorm, Dense, Softmax)
+DatasetText                  : Charge un fichier texte en octets et découpe des fenêtres
+```
+
+Le contexte utilisé se règle avec `Network::set_actual_context`, qui le transmet à l'Embedding et à toutes les couches d'attention.
+
+### Entraînement
+
+| Réglage | Valeur |
+|---|---|
+| Lots | 16 fenêtres de 256 lettres, soit 4 096 lettres par tour |
+| Optimiseur | Adam, $\beta_1$ = 0,9, $\beta_2$ = 0,99, $\varepsilon$ = 1e-8 |
+| Taux d'apprentissage | montée de 0 à 3e-4 sur 2 000 tours, puis descente en cosinus jusqu'à 3e-5 |
+| Durée | 120 000 tours |
+| Initialisation | loi normale d'écart-type 0,02 pour l'Embedding et toutes les couches denses (comme GPT-2) |
+| Suivi | perte de validation tous les 1 000 tours, sur les 50 mêmes lots |
+| Sauvegardes | meilleur modèle et sauvegarde de secours tous les 5 000 tours, modèle final |
+
+$\beta_2$ = 0,99 au lieu de 0,999 : avec de petits lots, une moyenne des carrés des gradients sur environ 100 pas au lieu de 1 000 réagit plus vite et rend l'entraînement plus stable.
+
+**Les contrôles faits avant le grand entraînement :**
+
+| Test | Résultat |
+|---|---|
+| Perte de départ | 5,70, proche de ln 256 ≈ 5,55 |
+| Même calcul sur CPU et sur la carte | même perte (5,696) |
+| Apprendre un seul lot par cœur, taux 1e-3 | bloqué vers 3,0 puis 2,4 : taux trop fort |
+| Apprendre un seul lot par cœur, taux 3e-4 | 5,70 puis 0,005 en 1 000 tours |
+| Masque : changer la dernière lettre d'une fenêtre | sorties des autres lettres identiques (écart 0) |
+
+**Évolution de la perte de validation :**
+
+| Tour | 1 000 | 5 000 | 10 000 | 20 000 | 40 000 | 60 000 | 80 000 | 100 000 | 119 000 |
+|---|---|---|---|---|---|---|---|---|---|
+| Perte de val | 1,194 | 0,585 | 0,503 | 0,445 | 0,401 | 0,378 | 0,360 | 0,349 | 0,344 |
+
+![Courbe d'entraînement du LLM](data/plot/training_gpt_log.png)
+
+La perte de validation reste très proche de la perte d'entraînement. Le modèle ne voit presque jamais deux fois le même passage, il ne peut donc pas apprendre le texte par cœur. La perte baissait encore légèrement à la fin donc un entraînement plus long gagnerait encore un peu.
+
+### Limites et pistes du LLM
+
+- **Le découpage en octets** est simple à mettre en place mais il coûte cher. Une lettre accentuée prend deux octets, et un contexte de 256 octets ne couvre qu'une quarantaine de mots. Un découpage en morceaux de mots donnerait un contexte bien plus long pour le même calcul.
+- **Une perte basse grâce aux données** : les histoires de LeCarnet sont simples et répétitives, donc beaucoup plus faciles à prédire qu'un texte basique. Le modèle ne sait écrire que ce genre d'histoires.
+- **La sauvegarde** est un fichier texte d'environ 360 Mo, long à écrire et à relire. L'état d'Adam n'est pas sauvegardé. Après une reprise, il faut refaire une courte montée du taux.
+- **Piste** : un affinage sur des questions et réponses, avec une perte qui ne compte que les lettres de la réponse, pour transformer ce modèle qui raconte en un modèle qui répond.
+
+
 ## Compilation et exécution
 
 Prérequis : CMake ≥ 3.22, un compilateur C++17 (GCC, Clang ou MSVC).
@@ -671,7 +1041,7 @@ Pour chaque poids, j'ai comparé le gradient calculé par mon code à une estima
 Il ne connaît ni la façon de mesurer l'erreur, ni la façon de corriger ses poids. Ça permet de changer de méthode d'entraînement (passer de la méthode simple à Adam par exemple) sans toucher au reste du code.
 
 **Quand l'agent apprend, on ne corrige que l'action qu'il a réellement choisie.**
-Pour chaque situation vécue, seule la valeur associée à l'action jouée est corrigée et les trois autres actions possibles restent inchangées. 
+Pour chaque situation vécue, seule la valeur associée à l'action jouée est corrigée et les trois autres actions possibles restent inchangées.
 
 **La sauvegarde ne garde que les poids, pas la structure du réseau.**
 Pour recharger un modèle, il faut reconstruire un réseau avec exactement la même forme dans le code. Cela permet de simplifier la sauvegarde.
@@ -680,13 +1050,13 @@ Pour recharger un modèle, il faut reconstruire un réseau avec exactement la m�
 
 La suite de tests (`test_module`) vérifie, dans l'ordre où le projet a été construit :
 
-- toutes les opérations sur les matrices (addition, multiplication, transposée, etc...) 
-- le générateur de nombres aléatoires et les méthodes d'initialisation des poids 
-- les couches du réseau et les fonctions d'activation 
+- toutes les opérations sur les matrices (addition, multiplication, transposée, etc...)
+- le générateur de nombres aléatoires et les méthodes d'initialisation des poids
+- les couches du réseau et les fonctions d'activation
 - que le calcul des gradients est correct
-- que la copie d'un réseau est bien indépendante de l'original 
-- l'optimiseur Adam 
-- les deux environnements de jeu (couloir et Snake) : collisions, demi-tour interdit, limite de temps, etc... 
+- que la copie d'un réseau est bien indépendante de l'original
+- l'optimiseur Adam
+- les deux environnements de jeu (couloir et Snake) : collisions, demi-tour interdit, limite de temps, etc...
 - la mémoire des situations passées de l'agent (replay buffer)
 
 ## Limites connues

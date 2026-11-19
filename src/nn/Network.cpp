@@ -95,3 +95,11 @@ bool Network::in_gpu() {
     }
     return params.begin()->first->get_in_gpu();
 }
+
+void Network::set_actual_context(Index n) {
+    assert(!layers.empty() && "Erreur : Le réseau est vide");
+    std::vector<std::unique_ptr<Layer>>::iterator it;
+    for (it = layers.begin(); it != layers.end(); ++it) {
+        (*it)->set_actual_context(n);
+    }
+}
