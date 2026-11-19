@@ -132,6 +132,17 @@ Les quatre fonctions implémentées dans ce projet :
 
 Sa dérivée vaut 1 si $x > 0$ et 0 sinon.
 
+**GeLU** : Une variante de la fonction ReLU. Au lieu de couper net à zéro, elle adoucit la courbe de sorte à laisser passer quelques valeurs négatives. Sa courbe adoucie permet de rendre l'apprentissage plus régulier sur les réseaux très profonds comme les LLM.
+
+```math
+\mathrm{GELU}(x) = \frac{x}{2} \left( 1 + \mathrm{erf}\left( \frac{x}{\sqrt{2}} \right) \right)
+```
+
+```math
+\mathrm{GELU}'(x) = \frac{1}{2} \left( 1 + \mathrm{erf}\left( \frac{x}{\sqrt{2}} \right) \right) + \frac{x}{\sqrt{2\pi}} \, e^{-x^2/2}
+```
+
+
 **Sigmoïde** : Elle écrase toute valeur entre 0 et 1. A utiliser quand la sortie attendue est une probabilité ou un oui/non.
 
 ```math
@@ -297,6 +308,19 @@ w \leftarrow w - \eta \cdot \frac{\hat{m}_t}{\sqrt{\hat{v}_t} + \epsilon}
 
 Avec les valeurs usuelles $\beta_1 = 0.9$, $\beta_2 = 0.999$ et $\epsilon = 10^{-8}$. $g_t$ est le gradient à l'étape $t$, et $t$ compte le nombre de mises à jour effectuées depuis le début.
 
+Il peut être utile de faire varier le taux d'apprentissage plutôt que de garder le même durant tout l'entrainement.
+
+***Dans un premier temps***, on le fait varier de manière linéaire. Au départ, les poids d'un réseau sont aléatoires et les moyenne d'Adam ne reposent encore que sur quelques gradients. On evite d'utiliser des pas qui pourrait être trop grand. Pour se faire, on fait monter le taux d'apprentissage de 0 à la valeur maximale que peut prendre le taux pendant les K premiers pas.
+
+***Dans un second temps***, on veut de grands pas pour avancer vite, puis de petits pas à la fin pour affiner sans sauter par-dessus le minimum. On le fait descendre du taux max au taux min avec la fonction cosinus. 
+
+Au pas $s$, sur un entraînement de $N$ pas :
+
+```math
+\eta_s = \begin{cases} \eta_{max} \, \dfrac{s+1}{K} & \text{si } s < K \\[2mm] \eta_{min} + \dfrac{1}{2} (\eta_{max} - \eta_{min}) \left( 1 + \cos\left( \pi \, \dfrac{s - K}{N - K} \right) \right) & \text{sinon} \end{cases}
+```
+
+
 ### Apprendre à jouer : l'équation de Bellman
 
 Tout ce qui précède suppose qu'on connaît la bonne réponse pour chaque exemple. Pour XOR, c'est le cas, on sait que $0 \oplus 1 = 1$.
@@ -408,6 +432,172 @@ La couche **Flatten** ne calcule rien vue que les images sont déjà rangées à
 **Exemple d'un réseau CNN complet :**
 
 ![Réseau CNN exemple](docs/images/CNN-Pipeline.jpg)
+
+### Le texte en nombres
+
+Un LLM apprend une seule chose : deviner la suite d'un texte. On lui montre le début et il donne une probabilité pour chaque suite possible. Pour qu'un réseau puisse lire du texte, il faut d'abord le transformer en nombres.
+
+On découpe le texte en morceaux appelés ***tokens***. Chaque token différent reçoit un numéro associé. L'ensemble des tokens possibles forme ce qu'on appelle le vocabulaire de taille V. Il existe plusieurs façon de les découper avec leurs avantages et leurs inconvéniants :
+
+| Découpage | Exemple pour « chaton » | Taille du vocabulaire | Avantages et défauts |
+|---|---|---|---|
+| Par octet | c, h, a, t, o, n | 256 | Aucun mot inconnu possible, mais les textes deviennent très longs |
+| Par mot | chaton | des centaines de milliers | Textes courts, mais un mot jamais vu ne peut pas être écrit |
+| Par morceaux de mots (BPE) | chat, on | quelques dizaines de milliers | Le compromis utilisé par les grands modèles |
+
+### Comment entrainer le LLM
+
+On prend un morceau de texte aevc T tokens. La cible est tout simplement le même texte décalé d'un cran. 
+
+| position | 0 | 1 | 2 | 3 |
+|---|---|---|---|---|
+| ce que le modèle a vu | c | c h | c h a | c h a t |
+| ce qu'il doit deviner | h | a | t | o |
+
+
+### L'embedding
+
+Chaque token est un numéro, mais ce numéro seul ne nous permet de faire des liens entre les tokens. Par exemple les token "chien" et "chat" ont un lien proche entre eux contrairement aux tokens "argent" et "bleu". On remplace donc chaque token par un vecteur de d nombres appris pendant l'entrainement. Les tokens qui s'utilisent de la même façon comme "chien" et "chat" finissent par avoir des vecteurs proches. Chaque valeurs de token à un vecteur associé, auquel addition un autre vecteur de sorte à préserver l'ordre dans une phrase. Sans ça, "le chat mange la souris" et "la souris mange le chat" seraient vus pareil.
+
+Soit $E_t$, le vecteur du token t :
+
+```math
+E_t = \mathrm{Tok}[x_t] + \mathrm{Pos}[t]
+```
+Dans la rétropropagation, le gradient de la ligne $t$ s'ajoute à la ligne $x_t$ de $\mathrm{Tok}$ et à la ligne $t$ de $\mathrm{Pos}$. Si le même token apparaît plusieurs fois, sa ligne reçoit la somme de tous ses gradients.
+
+### Couche de normalisation
+
+En empilant beaucoup de couches, les valeurs peuvent grossir ou rétrécir de couche en couche, ce qui rend l'apprentissage instable. La LayerNorm recentre chaque vecteur, ligne par ligne, pour que ses d colonnes aient une moyenne de 0 et un écart-type de 1 : 
+
+```math
+\mu = \frac{1}{d} \sum_{j=1}^{d} x_j
+\qquad
+\sigma^2 = \frac{1}{d} \sum_{j=1}^{d} (x_j - \mu)^2
+\qquad
+\hat{x}_j = \frac{x_j - \mu}{\sqrt{\sigma^2 + \varepsilon}}
+```
+
+Le petit $\varepsilon$ évite de diviser par zéro. Comme imposer exactement une de moyenne 0 et un écart-type 1 limiterait le réseau, on ajoute une échelle $\gamma$ et un décalage $\beta$ appris :
+
+```math
+y_j = \gamma_j \, \hat{x}_j + \beta_j
+```
+
+Chaque ligne est normalisée seule, donc le résultat ne dépend pas des autres exemples du lot.
+
+Pour la rétropropagation, on note g le gradient reçu et $\hat{g} = g \odot \gamma$ :
+
+```math
+\frac{\partial L}{\partial \gamma} = \sum_{\text{lignes}} g \odot \hat{x}
+\qquad
+\frac{\partial L}{\partial \beta} = \sum_{\text{lignes}} g
+```
+
+```math
+\frac{\partial L}{\partial x} = \frac{1}{\sqrt{\sigma^2 + \varepsilon}} \left( \hat{g} - \mathrm{moy}(\hat{g}) - \hat{x} \odot \mathrm{moy}(\hat{g} \odot \hat{x}) \right)
+```
+
+### La couche d'attention
+
+Le problème d'une couche dense est qu'elle traite chaque token individuellement. Elle ne sait pas ce qu'il y a avant. Or pour deviner la suite "Le chat que j'ai vu hier soir dans le jardin est…", il faut retrouver chat qui est loin dans la phrase et ignorer les autres mots. L'attention permet à chaque token de choisir quels tokens regarder.
+
+Chaque token fabrique 3 vecteurs avec 3 couche denses :
+
+- une **question** Q : « qu'est-ce que je cherche ? » ;
+- une **clé** K : « qu'est-ce que je contiens ? » ;
+- une **valeur** V : « qu'est-ce que je transmets si on me choisit ? ».
+
+Le score S entre le token a et b est le produit scalaire de la question de a avec la clé de b. Plus il est grand, plus les vecteurs vont dans la même direction.
+
+```math
+S = \frac{Q K^{T}}{\sqrt{d_k}}
+```
+
+Des scores trop grands rendraient le softmax presque binaire (un 1 et des 0) et ses gradients presque nuls. La division garde les scores à une bonne taille.
+
+Attention, un modèle qui écrit du texte ne doit pas lire la suite pour deviner, sinon il n'apprendrait pas. Le token t n'a le droit de regarder que les tokens de 0 à t. On applique donc le softmax seulement sur les colonnes autorisées :
+
+```math
+A_{tj} = \begin{cases} \dfrac{e^{S_{tj}}}{\sum_{k \le t} e^{S_{tk}}} & \text{si } j \le t \\[2mm] 0 & \text{si } j > t \end{cases}
+```
+
+Chaque token reçoit enfin la moyenne des valeurs des tokens qu'il regarde, pondérée par ces poids :
+
+```math
+O = A V
+```
+
+O est ensuite transmis aux autres couches.
+
+Pour la rétropropagation. On utilise la règle du produit de matrices suivante : $C = AB$ donne $\frac{\partial L}{\partial A} = \frac{\partial L}{\partial C} B^{T}$ et $\frac{\partial L}{\partial B} = A^{T} \frac{\partial L}{\partial C}$
+
+```math
+\frac{\partial L}{\partial A} = \frac{\partial L}{\partial O} V^{T}
+\qquad
+\frac{\partial L}{\partial V} = A^{T} \frac{\partial L}{\partial O}
+```
+
+Une seule attention donne, pour chaque token, un seul mélange. Mais un token a souvent besoin de plusieurs informations à la fois : le mot en cours, le sujet de la phrase, la dernière ponctuation etc…
+
+On découpe les d colonnes de Q, K et V en H groupes de g = d/H. On les appelle des têtes. Chaque tête fait son propre calcul d'attention et peut donc se spécialiser. Les sorties des têtes sont recollées côte à côte, puis mélangées par une dernière couche dense.
+
+Le calcul total est le même qu'avec une seule grande tête. On ne fait que découper les colonnes.
+
+### Les connexions résiduelles
+
+Quand on empile beaucoup de couches, le gradient est multiplié à chaque couche par une dérivée locale. S'il traverse des dizaines de couches, il peut devenir minuscule, et les premières couches n'apprennent presque plus rien. La connexion résiduelle ajoute l'entrée d'une couche à sa sortie.
+
+```math
+Y = X + R(X)
+```
+
+La couche n'apprend donc plus une transformation complète, seulement une **correction** $R(X)$ à ajouter. Et dans la rétropropagation :
+
+```math
+\frac{\partial L}{\partial X} = \frac{\partial L}{\partial Y} + \frac{\partial L}{\partial Y} \cdot \frac{\partial R}{\partial X}
+```
+
+### Un Transformer
+
+Un Transformer assemble tout ce qui précède en deux moitiés, chacune avec sa connexion résiduelle :
+
+```math
+X_1 = X + \mathrm{MultiTête}(\mathrm{LN}_1(X))
+```
+
+```math
+Y = X_1 + W_2 \, \mathrm{GELU}(W_1 \, \mathrm{LN}_2(X_1) + b_1) + b_2
+```
+
+- La première moitié fait communiquer les tokens entre eux.
+- La deuxième moitié liasse chaque token réfléchir seul avec ce qu'il vient d'apprendre.
+
+La LayerNorm est appliquée avant chaque moitié, et c'est l'entrée non normalisée qui est ajoutée par le résiduel.
+
+L'entrée et la sortie d'un Transformer ont la même taille, ce qui permet d'en empiler autant qu'on veut.
+
+Ainsi un LLM se construit de la manière suivante :
+
+```
+tokens → Embedding → Transformer 1 → Transformer 2 → … → Transformer N → LayerNorm → Dense (d → V) → Softmax
+```
+
+### Génération du texte
+
+Une fois entrainé, le modèle peut écrire. On lui donne un début de texte, il calcule la probabilités du token suivant, il tire au hasard selon les probabilités et il l'ajoute au texte puis recommence. Si le texte est plus long que le contexte maximal C, on ne garde que les C premiers tokens.
+
+On peut régler le hasard en divisant les scores s par une temperature y avant le softmax :
+
+```math
+p_i = \frac{e^{s_i / y}}{\sum_j e^{s_j / y}}
+```
+
+- $y < 1$ creuse les écarts : le modèle choisit presque toujours le token le plus probable. Le texte est prudent, mais il a tendance à se répéter.
+- $y = 1$ garde les probabilités apprises.
+- $y > 1$ aplatit les écarts : le texte devient plus original, puis incohérent si y est trop grand.
+
+Prendre toujours le token le plus probable donne souvent des boucles du type "et il joua et il joua et il joua"
 
 ## Architecture
 
