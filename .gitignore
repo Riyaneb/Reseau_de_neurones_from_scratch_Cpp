@@ -3,3 +3,8 @@ cmake-build-debug
 /data/dataset_images/chest_xray/
 /data/dataset_images/MNIST/
 .idea/
+cmake-build-release/
+/MaxLSB_LeCarnet_dataset/
+/models/best_gpt.txt
+/models/secours_gpt.txt
+/models/gpt_end_training.txt
